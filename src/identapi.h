@@ -39,7 +39,7 @@ enum identapi_enum {
   IDENTAPI_MEM
 };
 
-const char *IDENTAPI_TYPES [20] =
+const char *IDENTAPI_TYPES [23] =
 {
   "A", "B",	 "A+", "B+",	 
   "2B", "Alpha", "CM1",
@@ -49,6 +49,7 @@ const char *IDENTAPI_TYPES [20] =
   "Zero W", "3B+", "3A+",
   "--RESERVERED--",
   "CM3+", "4B",
+  "Zero 2 W", "400", "CM4",
   "--RESERVERED--",
   "--RESERVERED--",
 } ;
