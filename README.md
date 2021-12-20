@@ -44,6 +44,7 @@ The installer now requires you to run ```./configure``` before you run make. Thi
 * Ubuntu
 * OSMC
 * TwisterOS
+* Pop OS
 * Lakka *\**
 * LibreElec *\**
 * [OpenWRT](OS/openwrt/README.md) **EXPERIMENTAL** *\**
