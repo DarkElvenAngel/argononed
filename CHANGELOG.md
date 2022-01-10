@@ -6,6 +6,7 @@
 * Added RUN_IN_FOREGROUND flag
 * @fridrich has added opensuse support
 * @ArclightMat has added AlmaLinux support
+* Added Kali Linux support
 
 0.3.2
 
