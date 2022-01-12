@@ -163,3 +163,13 @@ INFO:  Packing files ... OK
 INFO:  Verify package ... OK
 INFO:  Package build/libreelec.pkg.sh is complete 
 ```
+
+## Argon Artik Hat
+
+If you have an Argon Artik Hat and you see these error message:  
+
+`Failed to load HAT overlay`
+
+`dterror: not a valid FDT - err - 9`  
+
+Check out my [firmware fix](firmware/README.md).
