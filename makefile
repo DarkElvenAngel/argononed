@@ -1,23 +1,23 @@
 # ********************************************************************
 # Argonone Daemon Makefile
 # ********************************************************************
-CC      	 = gcc
-RM      	 = rm -v
-DTC     	 = dtc -@ -I dts -O dtb -o
-BASH		 = bash
-INSTALL 	 = install
-CFLAGS  	 = -Wall -s -O3
-LFLAGS  	 = -lpthread -lrt
-LFLAGS3 	 = -lrt
+CC           = gcc
+RM           = rm -v
+DTC          = dtc -@ -I dts -O dtb -o
+BASH         = bash
+INSTALL      = install
+CFLAGS       = -Wall -s -O3
+LFLAGS       = -lpthread -lrt
+LFLAGS3      = -lrt
 OBJ_DAEMON   = build/argononed.o build/event_timer.o
 OBJ_CLI      = src/argonone-cli.c
 BIN_DAEMON   = argononed
 BIN_SHUTDOWN = argonone-shutdown
-BIN_CLI 	 = argonone-cli
-OVERLAY 	 = argonone.dtbo
-GCCVER  	 = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 10)
-USERID		 = $(shell id -u)
-LOGLEVEL 	 = 5
+BIN_CLI      = argonone-cli
+OVERLAY      = argonone.dtbo
+GCCVER       = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 10)
+USERID	     = $(shell id -u)
+LOGLEVEL     = 5
 
 -include makefile.conf
 ifndef BOOTLOC
