@@ -223,5 +223,5 @@ dumpvars:
 	@$(foreach V,$(sort $(.VARIABLES)), $(if $(filter-out environment% default automatic,$(origin $V)),$(warning $V=$($V) ($(value $V)))))
 
 ifdef MAKE_OVERRIDES
--include OS/$(DISTRO)/override.mk
+-include OS/$(DISTRO)/override.in
 endif
