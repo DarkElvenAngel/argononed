@@ -1,23 +1,23 @@
 # ********************************************************************
 # Argonone Daemon Makefile
 # ********************************************************************
-CC      = gcc
-RM      = rm -v
-DTC     = dtc -@ -I dts -O dtb -o
-BASH	= bash
-INSTALL = install
-CFLAGS  = -Wall -s -O3
-LFLAGS  = -lpthread -lrt
-LFLAGS3 = -lrt
-OBJ     = build/argononed.o build/event_timer.o
-OBJ3    = src/argonone-cli.c
-BINAME1 = argononed
-BINAME2 = argonone-shutdown
-BINAME3 = argonone-cli
-OVERLAY = argonone.dtbo
-GCCVER  = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 10)
-USERID	= $(shell id -u)
-LOGLEVEL = 5
+CC      	 = gcc
+RM      	 = rm -v
+DTC     	 = dtc -@ -I dts -O dtb -o
+BASH		 = bash
+INSTALL 	 = install
+CFLAGS  	 = -Wall -s -O3
+LFLAGS  	 = -lpthread -lrt
+LFLAGS3 	 = -lrt
+OBJ_DAEMON   = build/argononed.o build/event_timer.o
+OBJ_CLI      = src/argonone-cli.c
+BIN_DAEMON   = argononed
+BIN_SHUTDOWN = argonone-shutdown
+BIN_CLI 	 = argonone-cli
+OVERLAY 	 = argonone.dtbo
+GCCVER  	 = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 10)
+USERID		 = $(shell id -u)
+LOGLEVEL 	 = 5
 
 -include makefile.conf
 ifndef BOOTLOC
@@ -44,8 +44,11 @@ endif
 ifdef RUN_IN_FOREGROUND
 CFLAGS += -DRUN_IN_FOREGROUND
 endif
+ifdef ENABLE_COMPILE_WARNINGS
+CFLAGS += -Wextra -Wconversion -Wunused -Wuninitialized
 ifeq ($(GCCVER), 1)
-	CFLAGs  += -fanalyzer
+	CFLAGS  += -fanalyzer
+endif
 endif
 
 -include OS/_common/$(INITSYS).in
@@ -82,17 +85,16 @@ build/%.o: src/%.c
 	@echo "Compile $<"
 	$(CC) -c -o $@ $< $(CFLAGS) -DLOG_LEVEL=$(LOGLEVEL) 
 
-$(BINAME1): $(OBJ)
-	@echo "Build $(BINAME1)"
-	$(CC) -o build/$(BINAME1) $^ $(CFLAGS) $(LFLAGS)
+$(BIN_DAEMON): $(OBJ_DAEMON)@echo "Build $(BIN_DAEM O N)"
+	$(CC) -o build/$(BIN_DAE  MON) $^ $(CFLAGS) $(LFLAGS)
 
-$(BINAME2): src/argonone-shutdown.c
-	@echo "Build $(BINAME2)"
-	$(CC) -o build/$(BINAME2) $^ $(CFLAGS)
+$(BIN_SHUTDOWN): src/argonone-shutdown.c
+	@echo "Build $(BIN_SHUTDOWN)"
+	$(CC) -o build/$(BIN_SHUTDOWN) $^ $(CFLAGS)
 
-$(BINAME3): $(OBJ3) 
-	@echo "Build $(BINAME3)"
-	$(CC) -o build/$(BINAME3) $^ $(CFLAGS) -DLOG_LEVEL=$(LOGLEVEL) $(LFLAGS3)
+$(BIN_CLI): $(OBJ_CLI) 
+	@echo "Build $(BIN_CLI)"
+	$(CC) -o build/$(BIN_CLI) $^ $(CFLAGS) -DLOG_LEVEL=$(LOGLEVEL) $(LFLAGS3)
 
 $(OVERLAY): src/argonone.dts
 	@echo "Build $@"
@@ -103,11 +105,11 @@ overlay: $(OVERLAY)
 	@echo "MAKE: Overlay"
 
 .PHONY: daemon
-daemon: $(BINAME1) $(BINAME2)
+daemon: $(BIN_DAEMON) $(BIN_SHUTDOWN)
 	@echo "MAKE: Daemon"
 
 .PHONY: cli
-cli: $(BINAME3)
+cli: $(BIN_CLI)
 	@echo "MAKE: CLI"
 
 .PHONY: all
@@ -117,7 +119,7 @@ all:: daemon cli overlay
 .PHONY: install-daemon
 install-daemon:
 	@echo -n "Installing daemon "
-	@$(INSTALL) build/$(BINAME1) /usr/sbin/$(BINAME1) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@$(INSTALL) build/$(BIN_DAEMON) /usr/sbin/$(BIN_DAEMON) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
 ifeq ($(LOGROTATE),1)
 	@$(INSTALL) -m 600 OS/_common/argononed.logrotate /etc/logrotate.d/argononed
 endif
@@ -125,7 +127,7 @@ endif
 .PHONY: install-cli
 install-cli:
 	@echo -n "Installing CLI "
-	@$(INSTALL) -m 0755 build/$(BINAME3) /usr/bin/$(BINAME3) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@$(INSTALL) -m 0755 build/$(BIN_CLI) /usr/bin/$(BIN_CLI) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
 ifeq ($(AUTOCOMP), 1)
 	@echo -n "Installing CLI autocomplete for bash "
 	@$(INSTALL) -m 755 OS/_common/argonone-cli-complete.bash /etc/bash_completion.d/argonone-cli 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
@@ -207,9 +209,9 @@ endif
 clean::
 	-@$(RM) *.o 2>/dev/null || true
 	-@$(RM) argonone.dtbo 2>/dev/null || true
-	-@$(RM) $(BINAME1) 2>/dev/null || true
-	-@$(RM) $(BINAME2) 2>/dev/null || true
-	-@$(RM) $(BINAME3) 2>/dev/null || true
+	-@$(RM) $(BIN_DAEMON) 2>/dev/null || true
+	-@$(RM) $(BIN_SHUTDOWN) 2>/dev/null || true
+	-@$(RM) $(BIN_CLI) 2>/dev/null || true
 	-@$(RM) build/* 2>/dev/null || true
 
 .PHONY: mrproper
@@ -219,3 +221,7 @@ mrproper: clean
 .PHONY: dumpvars
 dumpvars:
 	@$(foreach V,$(sort $(.VARIABLES)), $(if $(filter-out environment% default automatic,$(origin $V)),$(warning $V=$($V) ($(value $V)))))
+
+ifdef MAKE_OVERRIDES
+-include OS/$(DISTRO)/override.mk
+endif
