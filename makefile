@@ -85,8 +85,9 @@ build/%.o: src/%.c
 	@echo "Compile $<"
 	$(CC) -c -o $@ $< $(CFLAGS) -DLOG_LEVEL=$(LOGLEVEL) 
 
-$(BIN_DAEMON): $(OBJ_DAEMON)@echo "Build $(BIN_DAEM O N)"
-	$(CC) -o build/$(BIN_DAE  MON) $^ $(CFLAGS) $(LFLAGS)
+$(BIN_DAEMON): $(OBJ_DAEMON)
+	@echo "Build $(BIN_DAEMON)"
+	$(CC) -o build/$(BIN_DAEMON) $^ $(CFLAGS) $(LFLAGS)
 
 $(BIN_SHUTDOWN): src/argonone-shutdown.c
 	@echo "Build $(BIN_SHUTDOWN)"
