@@ -1,0 +1,16 @@
+# VOID LINUX
+
+install-service:
+	@echo "Installing services "
+	@echo -n "Create argononed service ... "
+	@mkdir /etc/sv/argononed 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Install argononed run script ... "
+	@$(INSTALL) -m 0755 OS/void/run /etc/sv/argononed 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "argonone-shutdown ... "
+	@$(INSTALL) $(SHUTDOWN_FILE) $(SHUTDOWN_PATH) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Install stage 3 script"
+	@$(INSTALL) -m 0755 OS/void/argonone_stage3.sh /usr/sbin 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Enable stage 3 script"
+	@echo "/usr/sbin/argonone_stage3.sh" >> /etc/rc.shutdown && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Enable Service "
+	@ln -s /etc/sv/argononed /var/service &>/dev/null && echo "Successful" || { echo "Failed"; }
