@@ -1,5 +1,8 @@
 # VOID LINUX
 
+OVERRIDE_INSTALL_SERVICE=1
+
+.PHONY: install-service
 install-service:
 	@echo "Installing services "
 	@echo -n "Create argononed service ... "

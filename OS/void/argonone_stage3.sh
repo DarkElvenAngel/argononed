@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # This script is written for VOID LINUX to run during stage 3
 # and should be called by /etc/rc.shutdown 
 
