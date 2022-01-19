@@ -1,10 +1,8 @@
 # OS folders
 
-This section is used for customized procedures required for an OS installer. The configure script looks for ``OS/$(DISTRO)/OS.conf`` and the main makefile will include the ``OS/$(DISTRO)/makefile.in``  
+This section is used for customized procedures required for an OS installer. The configure script looks for ``OS/$(DISTRO)/OS.conf`` and the main makefile will include the ``OS/$(DISTRO)/makefile.in``, if you need to override a target completely use``OS/$(DISTRO)/override.in`` See override targets for details.
 
-The makefile can add to but not override the targets `install` or `uninstall`  
-
-Any support files required for the OS must be in it's directory
+Any support files required for the OS must be in it's directory `OS/$(DISTRO)/`
 
 This system is limited in that the OS' `/etc/os-release` is used to identify it using the ID variable.
 
@@ -41,6 +39,14 @@ If you need to have custom events happen in order to install then it's best to c
 - **I2CHELPER** - If the OS needs extra steps to enable I2C
 - **BOOTLOC** - Location of where boot partition is mounted
 - **PACKAGESYS** - Set to 1 if native install is not possible
+
+## Override Targets
+
+In some cases the basic makefile steps aren't enough to get a working install in this case the targets can be expanded. Targets install, uninstall and update **cannot** be expanded
+
+There are cases when the install targets are not going work in this case you can override them place `MAKE_OVERRIDES = 1` in your `makefile.in` then add an `override.in` file, this is where you put the override targets before the target will override use `OVERRIDE_INSTALL_x = 1` where x is the target you want to override.  Valid values for x are daemon, cli, service, overlay. It's also possible to override the uninstall target this needs `OVERRIDE_UNINSTALL = 1`
+
+An example of `override.in` can be seen in OS/void/override.in
 
 ## Add Package Support
 

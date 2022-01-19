@@ -117,6 +117,7 @@ cli: $(BIN_CLI)
 all:: daemon cli overlay
 	@echo "MAKE: Complete"
 
+ifndef OVERRIDE_INSTALL_DAEMON
 .PHONY: install-daemon
 install-daemon:
 	@echo -n "Installing daemon "
@@ -124,7 +125,9 @@ install-daemon:
 ifeq ($(LOGROTATE),1)
 	@$(INSTALL) -m 600 OS/_common/argononed.logrotate /etc/logrotate.d/argononed
 endif
+endif
 
+ifndef OVERRIDE_INSTALL_CLI
 .PHONY: install-cli
 install-cli:
 	@echo -n "Installing CLI "
@@ -133,14 +136,17 @@ ifeq ($(AUTOCOMP), 1)
 	@echo -n "Installing CLI autocomplete for bash "
 	@$(INSTALL) -m 755 OS/_common/argonone-cli-complete.bash /etc/bash_completion.d/argonone-cli 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
 endif
+endif
 
+ifndef OVERRIDE_INSTALL_OVERLAY
 .PHONY: install-overlay
 install-overlay:
 	@echo -n "Installing overlay "
 	@$(INSTALL) build/argonone.dtbo $(BOOTLOC)/overlays/argonone.dtbo 2>/dev/null && echo "Successful" || { echo "Failed"; }
 	@$(BASH) OS/_common/setup-overlay.sh $(BOOTLOC)/config.txt
+endif
 
-
+ifndef OVERRIDE_INSTALL_SERVICE
 .PHONY: install-service
 install-service:
 	@echo "Installing services "
@@ -156,7 +162,7 @@ endif
 	@$(SERVICE_ENABLE) argononed &>/dev/null && echo "Successful" || { echo "Failed"; }
 	@echo -n "Starting Service "
 	@timeout 5s $(SERVICE_START) &>/dev/null && echo "Successful" || { ( [ $$? -eq 124 ] && echo "Timeout" || echo "Failed" ) }
-
+endif
 
 .PHONY: install
 install:: install-daemon install-cli install-service install-overlay
@@ -174,6 +180,7 @@ ifeq ($(shell if [ -f /usr/bin/argononed ]; then echo 1; fi), 1)
 endif
 	@echo "Update Complete"
 
+ifndef OVERRIDE_UNINSTALL
 .PHONY: uninstall
 uninstall::
 	@echo -n "Stop Service ... "
@@ -205,6 +212,7 @@ endif
 	@cp $(BOOTLOC)/config.txt $(BOOTLOC)/config.argonone.backup
 	@sed -i '/dtoverlay=argonone/d' $(BOOTLOC)/config.txt
 	@echo "Uninstall Complete"
+endif
 
 .PHONY: clean
 clean::
