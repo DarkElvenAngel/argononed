@@ -117,6 +117,10 @@ cli: $(BIN_CLI)
 all:: daemon cli overlay
 	@echo "MAKE: Complete"
 
+ifdef MAKE_OVERRIDES
+-include OS/$(DISTRO)/override.in
+endif
+
 ifndef OVERRIDE_INSTALL_DAEMON
 .PHONY: install-daemon
 install-daemon:
@@ -231,6 +235,3 @@ mrproper: clean
 dumpvars:
 	@$(foreach V,$(sort $(.VARIABLES)), $(if $(filter-out environment% default automatic,$(origin $V)),$(warning $V=$($V) ($(value $V)))))
 
-ifdef MAKE_OVERRIDES
--include OS/$(DISTRO)/override.in
-endif
