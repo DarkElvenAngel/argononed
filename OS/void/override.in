@@ -1,6 +1,7 @@
 # VOID LINUX
 
 OVERRIDE_INSTALL_SERVICE=1
+OVERRIDE_UNINSTALL=1
 
 # PRIVATE VALUES JUST FOR VOID
 VOID_S3_SH = argonone_stage3.sh
@@ -16,11 +17,11 @@ install-service:
 	@$(INSTALL) -m 0755 OS/void/run /etc/sv/argononed 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
 	@echo -n "argonone-shutdown ... "
 	@$(INSTALL) $(SHUTDOWN_FILE) $(SHUTDOWN_PATH) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
-	@echo -n "Install stage 3 script"
+	@echo -n "Install stage 3 script ..."
 	@$(INSTALL) -m 0755 OS/void/$(VOID_S3_SH) $(VOID_S3_PATH) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
-	@echo -n "Enable stage 3 script"
+	@echo -n "Enable stage 3 script ... "
 	@grep -qF -- "$(VOID_S3_PATH)/$(VOID_S3_SH)" "$(VOID_RC_SHUTDOWN)" || echo "$(VOID_S3_PATH)/$(VOID_S3_SH)" >> "$(VOID_RC_SHUTDOWN)" && "Successful" || { echo "Failed"; true; }
-	@echo -n "Enable Service "
+	@echo -n "Enable Service ... "
 	@ln -s /etc/sv/argononed /var/service &>/dev/null && echo "Successful" || { echo "Failed"; }
 
 .PHONY: uninstall
@@ -41,7 +42,7 @@ uninstall:
 	@echo -n "Remove service ..."
 	@$(RM) -rf /etc/sv/argononed && echo "Successful" || { echo "Failed"; true; }
 	@echo -n "Remove shutdown service ..."
-	@sed -i "\~$(VOID_S3_PATH)/$(VOID_S3_SH)~d" $(VOID_RC_SHUTDOWN)
+	@sed -i "\~$(VOID_S3_PATH)/$(VOID_S3_SH)~d" $(VOID_RC_SHUTDOWN) && echo "Successful" || { echo "Failed"; true; }
 	@echo "Remove dtoverlay=argonone from $(BOOTLOC)/config.txt"
 	@cp $(BOOTLOC)/config.txt $(BOOTLOC)/config.argonone.backup
 	@sed -i '/dtoverlay=argonone/d' $(BOOTLOC)/config.txt

@@ -44,9 +44,11 @@ The installer now requires you to run ```./configure``` before you run make. Thi
 * Ubuntu
 * OSMC
 * TwisterOS
+* DietPI
 * Pop OS
 * Kali Linux
 * AlmaLinux Thanks to @ArclightMat
+* Void Linux
 * Lakka *\**
 * LibreElec *\**
 * [OpenWRT](OS/openwrt/README.md) **EXPERIMENTAL** *\**
