@@ -76,7 +76,7 @@ else
     [[ -d /etc/bash_completion.d ]] && { AUTOC=1 ; echo -e "\e[32mOK\e[0m";} || { AUTOC=0 ; echo -e "\e[1mNOT INSTALLED\e[0m";}
     echo -n "logrotate : "
     command -v logrotate  &> /dev/null && LOGROTATE=1 || LOGROTATE=0
-    [[ $LOGROTATE ]] && echo -e "\e[32mINSTALLED\e[0m" || echo -e "\e[0mNOT INSTALLED\e[0m"
+    [[ $LOGROTATE == 1 ]] && echo -e "\e[32mINSTALLED\e[0m" || echo -e "\e[1mNOT INSTALLED\e[0m"
 fi
 echo -ne "\e[1mDependency Check :\e[0m"
 if [[ $GCC -eq 1 && $DTC -eq 1 && $MAKE -eq 1 ]]
