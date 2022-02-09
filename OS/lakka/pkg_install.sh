@@ -15,6 +15,8 @@ F_INSTALL()
     install build/argononed /storage/sbin/argononed 2>/dev/null || { echo "ERROR:  Cannot install argononed"; exit 1;}
     install -m 4755 build/argonone-cli /storage/sbin/argonone-cli 2>/dev/null || { echo "ERROR:  Cannot install argonone-cli"; exit 1;}
     install build/argonone-shutdown /storage/sbin/argonone-shutdown 2>/dev/null || { echo "ERROR:  Cannot install argonone-shutdown"; exit 1;}
+    [[ -f /storage/.profile ]] || cp /etc/profile /storage/.profile
+    grep /storage/sbin/ /storage/.profile &>/dev/null|| echo "export PATH=/storage/sbin/:$PATH" >> /storage/.profile
     # Change path form /usr/sbin to /storage/sbin
     sed -i "s/usr/storage/g" OS/_common/argononed.service
     install OS/_common/argononed.service /storage/.config/system.d/argononed.service || { echo "ERROR:  Cannot install argononed.service"; exit 1;}
