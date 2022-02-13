@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # MIT License
 
 # Copyright (c) 2020 DarkElvenAngel
@@ -21,10 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-[[ -a makefile.conf ]] && { echo -e "\e[31mERROR\e[0;1m:  makefile.conf already exists. run make mrproper first!\e[0m"; exit 1;}
+[[ -f makefile.conf ]] && { echo -e "\e[31mERROR\e[0;1m:  makefile.conf already exists. run make mrproper first!\e[0m"; exit 1;}
 [[ -d build ]] || mkdir build
 echo -e "\e[1;37mARGON ONE DAEMON CONFIGURING ...\e[0m"
-if [[ -n $TARGET_DISTRO ]]
+if [[ "x$TARGET_DISTRO" != "x" ]]
 then
     DISTRO=$TARGET_DISTRO
 else
@@ -34,11 +34,17 @@ STATUS=UNKNOWN
 I2CHELPER=0
 PACKAGESYS=0
 INITSYS="SYSTEMD"
-[[ ! -n $BOOTLOC ]] && BOOTLOC="/boot"
+WARNING=""
+[[ "$BOOTLOC" == "x" ]] && BOOTLOC="/boot"
 echo -ne "\e[1mDistro check [$DISTRO] : \e[0m"
-if [[ -d "OS/$DISTRO" ]] 
-then 
-    [[ -f "OS/$DISTRO/OS.conf" ]] && source OS/$DISTRO/OS.conf
+if [[ -d "OS/$DISTRO" ]]
+then
+    if [[ -f "OS/$DISTRO/OS.conf" ]]
+    then
+        source OS/$DISTRO/OS.conf
+    else
+        WARNING="\n\e[1;33mWARNING: MISSING OS.conf, loading defaults.\e[0m"
+    fi
     case $STATUS in
     "OK")
         COLOUR=32
@@ -50,7 +56,7 @@ then
         COLOUR=31
         ;;
     esac
-    echo -e "\e[0;${COLOUR}m${STATUS}\e[0m" 
+    echo -e "\e[0;${COLOUR}m${STATUS}\e[0m${WARNING}"
 else
     echo -e "\e[1;33mWARNING: UNKNOWN DISTRO, The installer may not work\e[0m"
 fi
@@ -70,7 +76,7 @@ then
     I2CBUS=1
 else
     echo -n "I2C Bus check : "
-    [[ -a /dev/i2c-1 ]] && { I2CBUS=1 ; echo -e "\e[32mENABLED\e[0m";} || { I2CBUS=0 ; echo -e "\e[1mNOT ENABLED\e[0m";}
+    [[ -c /dev/i2c-1 ]] && { I2CBUS=1 ; echo -e "\e[32mENABLED\e[0m";} || { I2CBUS=0 ; echo -e "\e[1mNOT ENABLED\e[0m";}
     echo -e "\e[1;37mCHECKING OPTIONAL SYSTEMS\e[0m"
     echo -n "bash-autocomplete : "
     [[ -d /etc/bash_completion.d ]] && { AUTOC=1 ; echo -e "\e[32mOK\e[0m";} || { AUTOC=0 ; echo -e "\e[1mNOT INSTALLED\e[0m";}
@@ -81,8 +87,8 @@ fi
 echo -ne "\e[1mDependency Check :\e[0m"
 if [[ $GCC -eq 1 && $DTC -eq 1 && $MAKE -eq 1 ]]
 then
-    echo -e "\e[32m Successful\e[0m" 
-else    
+    echo -e "\e[32m Successful\e[0m"
+else
     echo -e "\e[31m Failed! Please install the missing tool(s)\e[0m"
     exit 1
 fi
@@ -101,17 +107,17 @@ else
     echo "I2CBUS=${I2CBUS}" >> makefile.conf
     echo "LOGROTATE=${LOGROTATE}" >> makefile.conf
 fi
-if [[ -n $DISABLE_POWERBUTTON ]]
+if [[ "x$DISABLE_POWERBUTTON" != "x" ]]
 then
     echo -e "Power Button is \e[1mDISABLED\e[0m"
     echo "DISABLE_POWER_BUTTON_SUPPORT=1" >> makefile.conf
 fi
-if [[ -n $USE_SYSFS_TEMP ]]
+if [[ "x$USE_SYSFS_TEMP" != "x" ]]
 then
     echo -e "Daemon will use \e[1m${USE_SYSFS_TEMP}\e[0m for temperature sensor"
     echo "USE_SYSFS_TEMP=${USE_SYSFS_TEMP}" >> makefile.conf
 fi
-if [[ -n $RUN_IN_FOREGROUND ]]
+if [[ "x$RUN_IN_FOREGROUND" != "x" ]]
 then
     echo -e "Daemon will use run only in foreground and not fork"
     echo "RUN_IN_FOREGROUND=1" >> makefile.conf
