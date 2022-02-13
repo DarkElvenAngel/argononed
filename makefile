@@ -54,13 +54,9 @@ endif
 -include OS/_common/$(INITSYS).in
 -include OS/$(DISTRO)/makefile.in
 
-ifneq (clean,$(findstring clean, $(MAKECMDGOALS)))
-ifneq (mrproper,$(findstring mrproper, $(MAKECMDGOALS)))
 ifndef CONFIGURED
 ifeq (,$(wildcard makefile.conf))
 $(warning Configuration missing or not correct)
-endif
-endif
 endif
 endif
 
@@ -82,6 +78,8 @@ endif
 endif
 
 .DEFAULT_GOAL := all
+
+
 
 build/%.o: src/%.c
 	@echo "Compile $<"
