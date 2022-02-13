@@ -1,0 +1,49 @@
+# VOID LINUX
+
+OVERRIDE_INSTALL_SERVICE=1
+OVERRIDE_UNINSTALL=1
+
+# PRIVATE VALUES JUST FOR VOID
+VOID_S3_SH = argonone_stage3.sh
+VOID_S3_PATH = /usr/sbin
+VOID_RC_SHUTDOWN = /etc/rc.shutdown
+
+.PHONY: install-service
+install-service:
+	@echo "Installing services "
+	@echo -n "Create argononed service ... "
+	@mkdir /etc/sv/argononed 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Install argononed run script ... "
+	@$(INSTALL) -m 0755 OS/void/run /etc/sv/argononed 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "argonone-shutdown ... "
+	@$(INSTALL) $(SHUTDOWN_FILE) $(SHUTDOWN_PATH) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Install stage 3 script ..."
+	@$(INSTALL) -m 0755 OS/void/$(VOID_S3_SH) $(VOID_S3_PATH) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Enable stage 3 script ... "
+	@grep -qF -- "$(VOID_S3_PATH)/$(VOID_S3_SH)" "$(VOID_RC_SHUTDOWN)" || echo "$(VOID_S3_PATH)/$(VOID_S3_SH)" >> "$(VOID_RC_SHUTDOWN)" && "Successful" || { echo "Failed"; true; }
+	@echo -n "Enable Service ... "
+	@ln -s /etc/sv/argononed /var/service &>/dev/null && echo "Successful" || { echo "Failed"; }
+
+.PHONY: uninstall
+uninstall:
+	@echo "Uninstalling ..."
+	@echo -n "Remove overlay ... "
+	@$(RM) $(BOOTLOC)/overlays/argonone.dtbo 2>/dev/null && echo "Successful" || { echo "Failed"; }
+	@echo -n "Remove daemon ... "
+	@$(RM) /usr/*bin/argononed 2>/dev/null&& echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Remove cli-tool ... "
+	@$(RM) /usr/bin/argonone-cli 2>/dev/null&& echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Remove argonone-shutdown ... "
+	@$(RM) $(SHUTDOWN_PATH) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Remove stage 3 script ... "
+	@$(RM) $(VOID_S3_PATH)/$(VOID_S3_SH) && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Disable service ..."
+	@$(RM) /var/service/argononed && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Remove service ..."
+	@$(RM) -rf /etc/sv/argononed && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Remove shutdown service ..."
+	@sed -i "\~$(VOID_S3_PATH)/$(VOID_S3_SH)~d" $(VOID_RC_SHUTDOWN) && echo "Successful" || { echo "Failed"; true; }
+	@echo "Remove dtoverlay=argonone from $(BOOTLOC)/config.txt"
+	@cp $(BOOTLOC)/config.txt $(BOOTLOC)/config.argonone.backup
+	@sed -i '/dtoverlay=argonone/d' $(BOOTLOC)/config.txt
+	@echo "Complete"

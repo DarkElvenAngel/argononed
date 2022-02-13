@@ -1,0 +1,11 @@
+[Unit]
+Description=Mount Overlayfs For argonone-shutdown
+DefaultDependencies=no
+After=local-fs.target
+
+[Service]
+ExecStart=mount -t overlay overlay -o lowerdir=/lib/systemd,upperdir=/storage/.systemd,workdir=/storage/.work /lib/systemd
+Type=oneshot
+
+[Install]
+WantedBy=local-fs.target

@@ -1,0 +1,9 @@
+# opensuse-microos
+
+OVERRIDE_INSTALL_OVERLAY=1
+
+.PHONY: install-overlay
+install-overlay:
+	@echo -n "Installing overlay "
+	@$(INSTALL) build/argonone.dtbo $(BOOTLOC)/overlays/argonone.dtbo 2>/dev/null && echo "Successful" || { echo "Failed"; }
+	@$(BASH) OS/_common/setup-overlay.sh $(BOOTLOC)/extraconfig.txt

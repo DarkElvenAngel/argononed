@@ -1,5 +1,11 @@
 # Change Log
 
+0.3.4
+
+* Upgrade device-tree overlay to version 0.1.0
+* Remove functions and defines for gpio configuration
+* Added Void Linux Experimental support
+
 0.3.3
 
 * Added Experimental support for Alpine Linux

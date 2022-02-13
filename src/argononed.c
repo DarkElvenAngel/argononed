@@ -49,14 +49,14 @@ SOFTWARE.
 #include "identapi.h"
 #include "argononed.h"
 
-#define VERSION "0.3.3"
+#define VERSION "0.3.4"
 #ifndef LOG_LEVEL
 #define LOG_LEVEL 5
 #endif
 
 
-char* PI_PUD_STR[3] = {"OFF", "DOWN", "UP"};
-char* PI_MODE_STR[8] = { "INPUT", "OUTPUT", "ALT5", "ALT4", "ALT0", "ALT1", "ALT2", "ALT3" };
+// char* PI_PUD_STR[3] = {"OFF", "DOWN", "UP"};
+// char* PI_MODE_STR[8] = { "INPUT", "OUTPUT", "ALT5", "ALT4", "ALT0", "ALT1", "ALT2", "ALT3" };
 char* LOG_LEVEL_STR[6] = {"FATAL", "CRITICAL", "ERROR", "WARNING", "INFO",  "DEBUG"};
 
 uint8_t fanstage[4] = { 10 ,55, 100, 0 };
@@ -630,7 +630,11 @@ void daemonize(){
     signal(SIGHUP,signal_handler);
     signal(SIGTERM,signal_handler);
 }
-#ifndef DISABLE_POWER_BUTTON_SUPPORT 
+/* The following code is no longer required
+ * device overlay version 0.1.0 removes the
+ * requirement for /dev/gpiomem
+*/
+#if 0
 /**
  * Set GPIO pin mode
  * 
@@ -718,11 +722,11 @@ int main(int argc,char **argv)
     log_message(LOG_INFO,"Loading Configuration");
     Read_config();
 #ifndef DISABLE_POWER_BUTTON_SUPPORT 
-    if (gpioInitialize() < 0)
-    {
-        log_message(LOG_FATAL,"GPIO initialization failed");
-        return 1;
-    }
+    //if (gpioInitialize() < 0)
+    //{
+    //    log_message(LOG_FATAL,"GPIO initialization failed");
+    //    return 1;
+    //}
     log_message(LOG_INFO,"GPIO initialized");
 #else
     log_message(LOG_INFO,"GPIO Disabled");
@@ -759,8 +763,8 @@ int main(int argc,char **argv)
     memcpy(ptr->config.thresholds, &threshold, sizeof(threshold));
     ptr->config.hysteresis = hysteresis;
 #ifndef DISABLE_POWER_BUTTON_SUPPORT
-    gpioSetMode(4, PI_INPUT);
-    gpioSetPullUpDown(4, PI_PUD_DOWN);
+    // gpioSetMode(4, PI_INPUT);
+    // gpioSetPullUpDown(4, PI_PUD_DOWN);
     log_message(LOG_INFO,"Now waiting for button press");
     uint32_t count = 0;
     do

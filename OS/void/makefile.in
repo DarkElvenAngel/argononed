@@ -1,0 +1,8 @@
+SHUTDOWN_FILE=build/$(BIN_SHUTDOWN)
+SHUTDOWN_PATH=/usr/sbin/shutdown_argonone
+MAKE_OVERRIDES=1
+
+install:: install-overlay
+ifeq ($(I2CHELPER), 1)
+	@$(BASH) OS/void/i2chelper.sh 2> /dev/null
+endif	

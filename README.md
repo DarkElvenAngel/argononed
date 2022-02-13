@@ -44,14 +44,17 @@ The installer now requires you to run ```./configure``` before you run make. Thi
 * Ubuntu
 * OSMC
 * TwisterOS
+* DietPI
 * Pop OS
 * Kali Linux
 * AlmaLinux Thanks to @ArclightMat
+* Void Linux
 * Lakka *\**
 * LibreElec *\**
 * [OpenWRT](OS/openwrt/README.md) **EXPERIMENTAL** *\**
 * [Alpine Linux](OS/alpine/README.md) **SEE LINK**
 * opensuse Thanks to @fridrich
+* opensuse-microos **EXPERIMENTAL**
 
 If your OS isn't on this list it means that the installer isn't setup for your OS and it *may* or *may not* be able to install on your system.
 
@@ -69,7 +72,7 @@ The log levels go in this order: FATAL, CRITICAL, ERROR, WARNING, INFO, DEBUG. A
 
  **USE_SYSFS_TEMP** If your system doesn't have `/dev/vcio` you'll need to use the sysfs temperature sensor set. Set the path for your OS not all systems store this in the same place. example  `USE_SYSFS_TEMP=/sys/class/hwmon/hwmon1/temp1_input`
 
- **DISABLE_POWERBUTTON** if you don't have `/dev/gpiomem` and/or `/dev/gpiochip0` or you don't want to use the power button then use this flag.  Remember that the Force shutdown >= 5 second long press will still work.
+ **DISABLE_POWERBUTTON** if you don't have `/dev/gpiochip0` or you don't want to use the power button then use this flag.  Remember that the Force shutdown >= 5 second long press will still work.
 
  **RUN_IN_FOREGROUND** if you need the daemon to always run in the foreground this flag will skip the forking to the background and cause the daemon to log to the console.
 

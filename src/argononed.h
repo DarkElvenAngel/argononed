@@ -33,13 +33,13 @@ SOFTWARE.
 #define SHM_FILE "argonone"
 #define SHM_SIZE 512
 
-#define PI_INPUT  0
-#define PI_OUTPUT 1
-#define GPPUD     37
-#define GPPUDCLK0 38
-#define PI_PUD_OFF  0
-#define PI_PUD_DOWN 1
-#define PI_PUD_UP   2
+// #define PI_INPUT  0
+// #define PI_OUTPUT 1
+// #define GPPUD     37
+// #define GPPUDCLK0 38
+// #define PI_PUD_OFF  0
+// #define PI_PUD_DOWN 1
+// #define PI_PUD_UP   2
 
 struct DTBO_Config {
     uint8_t fanstages[3];
