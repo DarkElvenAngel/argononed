@@ -136,7 +136,7 @@ struct SHM_Data {               //  DAEMON  |   CLIENT
     uint8_t temperature_target; //      RW  |   RW
     uint8_t fanspeed_Overide;   //      RO  |   RW
     uint8_t status;             //      RW  |   RW
-    // uint8_t req_flags;          //      RW  |   WO
+    uint8_t req_flags;          //      RW  |   WO
     struct SHM_DAEMON_STATS stat;
     //struct SHM_REQ_MSG msg; // Special Message for CLI client only
     struct SHM_REQ_MSG msg_app[3]; // Normal Application Messages **Not Yet Enabled**
