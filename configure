@@ -21,75 +21,73 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-[[ -f makefile.conf ]] && { echo -e "\e[31mERROR\e[0;1m:  makefile.conf already exists. run make mrproper first!\e[0m"; exit 1;}
-[[ -d build ]] || mkdir build
-echo -e "\e[1;37mARGON ONE DAEMON CONFIGURING ...\e[0m"
-if [[ "x$TARGET_DISTRO" != "x" ]]
+[ -f makefile.conf ] && { printf "\033[31mERROR\033[0;1m:  makefile.conf already exists. run make mrproper first!\033[0m\n"; exit 1;}
+[ -d build ] || mkdir build
+printf "\033[37;1mARGON ONE DAEMON CONFIGURING ...\033[0m\n"
+if [ "x$TARGET_DISTRO" != "x" ]
 then
     DISTRO=$TARGET_DISTRO
 else
     DISTRO=$(awk -F"=" '$1=="ID"{print $2}' /etc/os-release | sed 's/\"//g')
 fi
+
 STATUS=UNKNOWN
 I2CHELPER=0
 PACKAGESYS=0
 INITSYS="SYSTEMD"
-WARNING=""
-[[ "$BOOTLOC" == "x" ]] && BOOTLOC="/boot"
-echo -ne "\e[1mDistro check [$DISTRO] : \e[0m"
-if [[ -d "OS/$DISTRO" ]]
-then
-    if [[ -f "OS/$DISTRO/OS.conf" ]]
-    then
-        source OS/$DISTRO/OS.conf
-    else
-        WARNING="\n\e[1;33mWARNING: MISSING OS.conf, loading defaults.\e[0m"
-    fi
+[ "x$BOOTLOC" != "x" ] && BOOTLOC="/boot"
+
+printf "\033[1mDistro check [$DISTRO] : \033[0m"
+if [ -d "OS/$DISTRO" ]
+then 
+    [ -f "OS/$DISTRO/OS.conf" ] && . OS/$DISTRO/OS.conf
     case $STATUS in
     "OK")
         COLOUR=32
         ;;
     "EXPERIMENTAL")
-        COLOUR="1;33"
+        COLOUR=33
         ;;
     *)
         COLOUR=31
         ;;
     esac
-    echo -e "\e[0;${COLOUR}m${STATUS}\e[0m${WARNING}"
+    printf "\033[${COLOUR};1m${STATUS}\033[0m\n" 
 else
-    echo -e "\e[1;33mWARNING: UNKNOWN DISTRO, The installer may not work\e[0m"
+    printf "\033[33;1mWARNING: UNKNOWN DISTRO, The installer may not work\033[0m\n"
 fi
 
-echo -e "\e[1mSYSTEM CHECK\e[0m"
+printf "\033[1mSYSTEM CHECK\033[0m\n"
 echo -n "gcc : "
-command -v gcc &> /dev/null && GCC=1 || GCC=0
-[[ $GCC == 1 ]] && echo -e "\e[32mOK\e[0m" || echo -e "\e[31mERR\e[0m"
+command -v gcc >/dev/null 2>&1 && GCC=1 || GCC=0
+[ $GCC = 1 ] && printf "\033[32mOK\033[0m\n" || printf "\033[31mERR\033[0m\n"
 echo -n "dtc : "
-command -v dtc &> /dev/null && DTC=1 || DTC=0
-[[ $DTC == 1 ]] && echo -e "\e[32mOK\e[0m" || echo -e "\e[31mERR\e[0m"
+command -v dtc > /dev/null 2>&1 && DTC=1 || DTC=0
+[ $DTC = 1 ] && printf "\033[32mOK\033[0m\n" || printf "\033[31mERR\033[0m\n"
 echo -n "make : "
-command -v make &> /dev/null && MAKE=1 || MAKE=0
-[[ $MAKE == 1 ]] && echo -e "\e[32mOK\e[0m" || echo -e "\e[31mERR\e[0m"
-if [[ $PACKAGESYS == 1 ]]
+command -v make >/dev/null 2>&1 && MAKE=1 || MAKE=0
+[ $MAKE = 1 ] && printf "\033[32mOK\033[0m\n" || printf "\033[31mERR\033[0m\n"
+
+if [ $PACKAGESYS = 1 ]
 then
     I2CBUS=1
 else
     echo -n "I2C Bus check : "
-    [[ -c /dev/i2c-1 ]] && { I2CBUS=1 ; echo -e "\e[32mENABLED\e[0m";} || { I2CBUS=0 ; echo -e "\e[1mNOT ENABLED\e[0m";}
-    echo -e "\e[1;37mCHECKING OPTIONAL SYSTEMS\e[0m"
+    [ -c /dev/i2c-1 ] && { I2CBUS=1 ; printf  "\033[32mENABLED\033[0m\n";} || { I2CBUS=0 ; printf  "\033[1mNOT ENABLED\033[0m\n";}
+    printf  "\033[1;37mCHECKING OPTIONAL SYSTEMS\033[0m\n"
     echo -n "bash-autocomplete : "
-    [[ -d /etc/bash_completion.d ]] && { AUTOC=1 ; echo -e "\e[32mOK\e[0m";} || { AUTOC=0 ; echo -e "\e[1mNOT INSTALLED\e[0m";}
+    [ -d /etc/bash_completion.d ] && { AUTOC=1 ; printf "\033[32mOK\033[0m\n";} || { AUTOC=0 ; printf "\033[1mNOT INSTALLED\033[0m\n";}
     echo -n "logrotate : "
-    command -v logrotate  &> /dev/null && LOGROTATE=1 || LOGROTATE=0
-    [[ $LOGROTATE == 1 ]] && echo -e "\e[32mINSTALLED\e[0m" || echo -e "\e[1mNOT INSTALLED\e[0m"
+    command -v logrotate  >/dev/null 2>&1 && LOGROTATE=1 || LOGROTATE=0
+    [ $LOGROTATE = 1 ] && printf "\033[32mINSTALLED\033[0m\n" || printf "\033[1mNOT INSTALLED\033[0m\n"
 fi
-echo -ne "\e[1mDependency Check :\e[0m"
-if [[ $GCC -eq 1 && $DTC -eq 1 && $MAKE -eq 1 ]]
+
+printf "\033[1mDependency Check :\033[0m"
+if [ `expr $GCC + $DTC + $MAKE` = 3 ]
 then
-    echo -e "\e[32m Successful\e[0m"
+    printf  "\033[32m Successful\033[0m\n"
 else
-    echo -e "\e[31m Failed! Please install the missing tool(s)\e[0m"
+    printf  "\033[31m Failed! Please install the missing tool(s)\033[0m\n"
     exit 1
 fi
 
@@ -99,7 +97,7 @@ echo "DISTRO=${DISTRO}" >> makefile.conf
 echo "BOOTLOC=${BOOTLOC}" >> makefile.conf
 echo "INITSYS=${INITSYS}" >> makefile.conf
 echo "I2CHELPER=${I2CHELPER}" >> makefile.conf
-if [[ $PACKAGESYS == 1 ]]
+if [ $PACKAGESYS = 1 ]
 then
     echo "PACKAGESYS=ENABLED" >> makefile.conf
 else
@@ -107,19 +105,19 @@ else
     echo "I2CBUS=${I2CBUS}" >> makefile.conf
     echo "LOGROTATE=${LOGROTATE}" >> makefile.conf
 fi
-if [[ "x$DISABLE_POWERBUTTON" != "x" ]]
+if [ "x$DISABLE_POWERBUTTON" != "x" ]
 then
-    echo -e "Power Button is \e[1mDISABLED\e[0m"
+    printf "Power Button is \033[1mDISABLED\033[0m\n"
     echo "DISABLE_POWER_BUTTON_SUPPORT=1" >> makefile.conf
 fi
-if [[ "x$USE_SYSFS_TEMP" != "x" ]]
+if [ "x$USE_SYSFS_TEMP" != "x" ]
 then
-    echo -e "Daemon will use \e[1m${USE_SYSFS_TEMP}\e[0m for temperature sensor"
+    printf "Daemon will use \033[1m${USE_SYSFS_TEMP}\033[0m for temperature sensor\n"
     echo "USE_SYSFS_TEMP=${USE_SYSFS_TEMP}" >> makefile.conf
 fi
-if [[ "x$RUN_IN_FOREGROUND" != "x" ]]
+if [ "x$RUN_IN_FOREGROUND" != "x" ]
 then
-    echo -e "Daemon will use run only in foreground and not fork"
+    printf "Daemon will use run only in foreground and not fork\n"
     echo "RUN_IN_FOREGROUND=1" >> makefile.conf
 fi
 exit 0
