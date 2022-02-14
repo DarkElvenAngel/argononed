@@ -2,39 +2,27 @@
 
 A replacement daemon for the Argon One Raspberry Pi cases, and the Argon Artik Fan Hat.
 
-## How To Install
+## WARNING ALPHA STAGE
 
-Firstly you need to have a build environment setup, that includes the following `gcc dtc git bash linux-headers make git`  
-*NOTE : The package names will be different depending on your OS so I've only given their binary names. Refer to your distribution for what you need to install.*  
+**THIS BRANCH IS ALPHA STAGE ONLY!!!**
 
-I've tried to make the installer as simple as possible. After cloning this repo simply run ```./install``` You may need to reboot for full functionality.
+Not all features are working, present, and/or stable.
 
-## Configuration
+## What's new in 0.4.x
 
-Configuration is all done in the **/boot/config.txt** look for this line ```dtoverlay=argonone``` The parameters are simple.
-
-* **fantemp[0-2]** - Sets the temperatures at which the fan will spin up
-* **fanspeed[0-2]** - Sets the speed at which the fan will spin
-* **hysteresis** - Sets the hysteresis
-
-The default values are the same as the OEM at 55℃ the fan will start at 10%, at 60℃ the speed will increase to 55% and finally after 65℃ the fan will spin at 100%.  The default hysteresis is 3℃
-
-### Example config.txt
-
-In this example the hysteresis will be set to 5 and the fan will start at 50℃
-
-```text
-dtoverlay=argonone,hysteresis=5
-dtparam=fantemp0=50
-```
+* More control: multiple ways to configure.
+* Full rewrite of the base code.
+* Support for Argon IR REMOTE.
+* More robust IPC support.
+* New cli tool `argonctl`
 
 ## Why make this?
 
-Simply put I didn't like the OEM software.  It works sure but it uses Python and needs to install a bunch of dependencies.  This makes it's foot print on your system much bigger than it needs to be.  My daemon runs with minimal requirements, all of them are included in this Repo.
+Simply put I didn't like the OEM software.  It works sure but it uses Python and needs to install a bunch of dependencies.  This makes it's foot print on your system much bigger than it needs to be.  My daemon runs with minimal requirements, and requires no extra libraries.
 
 ## OS Support
 
-The installer now requires you to run ```./configure``` before you run make. This will set up the installer so that it should be able to install on multiple OS's.  The current list of supported OS's are  
+The current list of supported OS's are  
 
 * Raspberry Pi OS 32bit or 64bit
 * RetroPi
@@ -56,25 +44,75 @@ The installer now requires you to run ```./configure``` before you run make. Thi
 * opensuse Thanks to @fridrich
 * opensuse-microos **EXPERIMENTAL**
 
-If your OS isn't on this list it means that the installer isn't setup for your OS and it *may* or *may not* be able to install on your system.
+If your OS isn't on this list it means that the installer isn't setup for your OS and it *may* or *may not* be able to install on your system. If your OS is based off one of these the is a strong chance it will *just* work.
 
 *\** *Support for this OS is with the self extracting package system. SEE BELOW*
 
-## Logging Options
+## How To Install
 
-The default build will generate a very detailed logs if you want less logging then add  
-```make LOGLEVEL=[0-6]```  
-The log levels go in this order: FATAL, CRITICAL, ERROR, WARNING, INFO, DEBUG. A value of 0 disables logging.
+Firstly you need to have a build environment setup, that includes the following `gcc dtc git bash linux-headers make git`
 
-## Advanced Build Options
+*NOTE : The package names will be different depending on your OS so I've only given their binary names. Refer to your distribution for what you need to install.*  
 
- Advanced Build options are used with `configure` or `package.sh`
+I've tried to make the installer as simple as possible. After cloning this repo simply run ```./install``` You may need to reboot for full functionality.
 
- **USE_SYSFS_TEMP** If your system doesn't have `/dev/vcio` you'll need to use the sysfs temperature sensor set. Set the path for your OS not all systems store this in the same place. example  `USE_SYSFS_TEMP=/sys/class/hwmon/hwmon1/temp1_input`
+## Configuration
 
- **DISABLE_POWERBUTTON** if you don't have `/dev/gpiochip0` or you don't want to use the power button then use this flag.  Remember that the Force shutdown >= 5 second long press will still work.
+There are more ways to configure the daemon than before this is useful for advanced users however general users only need worry about using the `config.txt`.
 
- **RUN_IN_FOREGROUND** if you need the daemon to always run in the foreground this flag will skip the forking to the background and cause the daemon to log to the console.
+Using multiple configuration methods gives the greatest range of flexibility to this software.  The load order is important, the primary configuration comes from the overlay settings these are loaded first and have the lowest priority, next the configuration file is loaded, lastly the command line arguments are read they have the highest priority.  Values are overwritten from lowest to highest priority with one acceptation the flags value.  Flags are added together only the argument --force-flag-reset can set the flags to the default value this is set at compile time.
+
+What happens if there is no configuration file? The daemon will check if the configuration file exists if it's not found it's noted in the log but will not throw an error. Even if a custom file is requested.
+
+### Overlay Config
+
+Configuration starts in the **config.txt** look for this line ```dtoverlay=argonone``` The parameters are simple.
+
+* **fantemp[0-2]** - Sets the temperatures at which the fan will spin up
+* **fanspeed[0-2]** - Sets the speed at which the fan will spin
+* **hysteresis** - Sets the hysteresis
+
+The default values are the same as the OEM at 55℃ the fan will start at 10%, at 60℃ the speed will increase to 55% and finally after 65℃ the fan will spin at 100%.  The default hysteresis is 3℃
+
+Version 0.1.0 of the overlay has additional settings
+
+* **argonconf** - Set the location of argononed.conf *default /etc/argononed.conf*
+* **argon-i2c** - Set the i2c bus used for the controller *default 1*
+* **argon-flag** - This is used to set build flags *default 0* ** See Advanced Build Options for values*
+
+This overlay version also presets the GPIO 4 as and input with it's pull down resistor enabled.
+
+### Example config.txt
+
+In this example the hysteresis will be set to 5 and the fan will start at 50℃
+
+```text
+dtoverlay=argonone,hysteresis=5
+dtparam=fantemp0=50
+```
+
+### Configuration File
+
+The default configuration is loaded from the `config.txt` via the *device-tree* how ever it's possible to use a configuration file instead.  The configuration file will override most settings from `config.txt`. The default configuration file can be placed at `/etc/argononed.conf` you can customize this location with `argonconf=FILENAME` in config.txt or with the `--conf=FILENAME` argument set to **argononed**.  The following are the properties and the accepted values.
+
+* fans - set all fan speeds at once each value is comma separated.
+* fan*X* - set specific fan speed where *X* is a number from 0 - 2.
+* temps - set all temperature set points at once each value is comma separated.
+* temp*X* - set specific temperature set point where *X* is a number from 0 - 2.
+* hysteresis - set the hysteresis values 0 - 10 are valid
+* loglevel - change the log level of the daemon see Logging Options for values.
+* i2cbus - change the i2c bus address default is 1 and this value is rarely changed.
+* flags - see Advanced Build Options for values. **IMPORTANT this value is in HEX format**
+
+### Command Line Arguments
+
+The daemon now accepts command line arguments.
+
+### Final word on configuration
+
+If you are an advanced user and need to easily set multiple configurations it is recommended not to use build flags to disable/force default features that can be set with flags.  As these features will be unavailable to switch on without recompile.
+
+If you make a typo in the configuration file you will get warnings in log.
 
 ## Upgrading to the latest version
 
@@ -84,9 +122,27 @@ In order to upgrade to the latest version the current method is to pull the upda
 ./install
 ```
 
-## The Argon One CLI tool
+## Logging Options
 
-This is the new command line tool that lets you change setting on the fly. It communicates with shared memory of the daemon, so the daemon must be running for this tool to be of use. It also introduced new modes for the daemon such as Cool Down and Manual control over the fan.
+The default build will generate a very detailed logs if you want less logging then add  
+```make LOGLEVEL=[0-6]```  
+The log levels go in this order: NONE, FATAL, CRITICAL, ERROR, WARNING, INFO, DEBUG. A value of 0 disables logging. It is possible to turn logging back on or change the level using the `-l#` command line argument.
+
+## Advanced Build Options
+
+ Advanced Build options are used with `configure` or `package.sh`. Each of these options has a flag counterpart that can be set in config.txt, the configuration file, or a command line argument.
+
+ *Note that once these are set there is no way to unset them unless you recompile.*
+
+ **DISABLE_POWERBUTTON** *or* **FLAG 0x01** if you don't have `/dev/gpiochip0` or you don't want to use the power button then use this flag.  Remember that the Force shutdown >= 5 second long press will still work.
+
+ **RUN_IN_FOREGROUND** *or* **FLAG 0x02** if you need the daemon to always run in the foreground this flag will skip the forking to the background and cause the daemon to log to the console.
+
+ **USE_SYSFS_TEMP** *or* **FLAG 0x04** If your system doesn't have `/dev/vcio` you'll need to use the sysfs temperature sensor set.
+
+## Fan Modes
+
+The Daemon has 4 modes of operation but will always starts in Automatic mode.  Change modes using the GUI Applet is available or cli tool.
 
 ### Cool Down Mode
 
@@ -107,7 +163,11 @@ This is the default mode the daemon always starts in this mode and will follow t
 Yes an off switch, maybe you want to do something and you need to be sure the fan doesn't turn on and spoil it.  You can turn off the fan as follows ```argonone-cli --off```
 ***NOTE***: *When the fan is off nothing but turning to a different mode will turn it back on*
 
-## Setting setpoints
+## `argonone-cli` tool [ **WARNING** DEPRECATED ]
+
+The `argonone-cli` command line tool lets you change setting on the fly. It communicates with shared memory of the daemon, so the daemon must be running for this tool to be of use.
+
+## Setting schedules
 
 Want to adjust the when the fan comes on, maybe it's not staying on long enough you can change all set points in the schedules from the command line **without** rebooting.  the values are fan[0-2] temp[0-2] and hysteresis.  It's important when changing these values that you remember that the daemon will reject bad values and/or change them to something else.  It's also important to commit the changes you make otherwise they won't do anything.  The value rules are simple each stage must to greater than the one before it and there are minimum and max values.  
 For temperature the minimum value is 30° the maximum is currently undefined.  
@@ -115,8 +175,12 @@ For the fan the minimum speed is 10% and the maximum is 100%.
 For Hysteresis the minimum is 0° and the maximum is 10°  
 
 You can set your values like in this example.  
-```argonone-cli --fan0 25 --temp0 50 --hysteresis 10 --commit```  
-**OR**  
+
+```text
+argonone-cli --fan0 25 --temp0 50 --hysteresis 10 --commit
+```  
+
+The following method is not supported.
 
 ```text
 argonone-cli --fan0 25
@@ -125,44 +189,4 @@ argonone-cli --hysteresis 10
 argonone-cli --commit
 ```
 
-The changes don't have to made in one shot but you **MUST** commit them for them to take effect.
-
-## Package System
-
-This isn't a traditional package system for mainstream OS support this is meant to make an installer for an OS that otherwise isn't able to build the project locally.
-
-To generate a package you need to follow this procedure.
-
-```text
-make mrproper
-TARGET_DISTRO=<NAME OF DISTRO> ./package.sh
-```
-
-If successful the package will be in the build directory.
-
-### Screenshot of the packager
-
-```text
-    ___                                                __
-   /   |  _________ _____  ____  ____  ____  ___  ____/ /
-  / /| | / ___/ __ `/ __ \/ __ \/ __ \/ __ \/ _ \/ __  / 
- / ___ |/ /  / /_/ / /_/ / / / / /_/ / / / /  __/ /_/ /  
-/_/  |_/_/   \__, /\____/_/ /_/\____/_/ /_/\___/\__,_/   
-            /____/                                       
-                                                PACKAGER 
-_________________________________________________________
-ARGON ONE DAEMON CONFIGURING ...
-Distro check [libreelec] : OK
-SYSTEM CHECK
-gcc : OK
-dtc : OK
-make : OK
-Dependency Check : Successful
-INFO:  Preparing build environment ... OK
-INFO:  Building Source Files ... OK
-INFO:  Checking files ... OK
-INFO:  Building Installer ... OK
-INFO:  Packing files ... OK
-INFO:  Verify package ... OK
-INFO:  Package build/libreelec.pkg.sh is complete 
-```
+The changes **MUST** in one shot and have `--commit` them for them to take effect.

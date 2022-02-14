@@ -39,12 +39,12 @@ struct tmr_table
     int                 fd;
     time_handler        callback;
     void *              user_data;
-    unsigned int        interval;
+    time_t              interval;
     tmr_types           type;
-    struct tmr_table * next;
+    struct tmr_table*   next;
 };
 
-static void * _timer_thread();
+static void *_timer_thread();
 static pthread_t tmr_pthread;
 static struct tmr_table *tmr_table_pointer = NULL;
 
@@ -59,7 +59,7 @@ int initialize_timers()
     return 1;
 }
 
-size_t start_timer_long (unsigned int interval, time_handler handler, tmr_types type, void * user_data)
+size_t start_timer_long (time_t interval, time_handler handler, tmr_types type, void * user_data)
 {
     struct tmr_table * new_node = NULL;
     struct itimerspec new_value;
@@ -104,7 +104,7 @@ size_t start_timer_long (unsigned int interval, time_handler handler, tmr_types 
     return (size_t)new_node;
 }
 
-size_t start_timer(unsigned int interval, time_handler handler, tmr_types type, void * user_data)
+size_t start_timer(time_t interval, time_handler handler, tmr_types type, void * user_data)
 {
     struct tmr_table * new_node = NULL;
     struct itimerspec new_value;
@@ -199,9 +199,9 @@ struct tmr_table * _get_timer_from_fd(int fd)
 void * _timer_thread()
 {
     struct pollfd ufds[MAX_TIMER_COUNT] = {{0}};
-    int iMaxCount = 0;
+    nfds_t i, iMaxCount = 0;
     struct tmr_table * tmp = NULL;
-    int read_fds = 0, i, s;
+    int read_fds = 0, s;
     uint64_t exp;
 
     while(1)

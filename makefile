@@ -9,7 +9,8 @@ INSTALL      = install
 CFLAGS       = -Wall -s -O3
 LFLAGS       = -lpthread -lrt
 LFLAGS3      = -lrt
-OBJ_DAEMON   = build/argononed.o build/event_timer.o
+OBJ_DAEMON   = build/argononed.o build/argonone_config.o build/logger.o build/event_timer.o build/argonone_shm.o
+OBJ_SHUTDOWN = src/argonone-shutdown.c
 OBJ_CLI      = src/argonone-cli.c
 BIN_DAEMON   = argononed
 BIN_SHUTDOWN = argonone-shutdown
@@ -91,7 +92,7 @@ $(BIN_DAEMON): $(OBJ_DAEMON)
 	@echo "Build $(BIN_DAEMON)"
 	$(CC) -o build/$(BIN_DAEMON) $^ $(CFLAGS) $(LFLAGS)
 
-$(BIN_SHUTDOWN): src/argonone-shutdown.c
+$(BIN_SHUTDOWN): $(OBJ_SHUTDOWN)
 	@echo "Build $(BIN_SHUTDOWN)"
 	$(CC) -o build/$(BIN_SHUTDOWN) $^ $(CFLAGS)
 

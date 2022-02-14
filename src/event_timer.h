@@ -25,7 +25,7 @@ int     initialize_timers();
  * \param user_data pointer to data to pass to function
  * \return 0 on fault or timer id
  */
-size_t  start_timer_long(unsigned int interval, time_handler handler, tmr_types type, void * user_data);
+size_t  start_timer_long(time_t interval, time_handler handler, tmr_types type, void * user_data);
 /**
  * Start a new timer
  * 
@@ -35,7 +35,7 @@ size_t  start_timer_long(unsigned int interval, time_handler handler, tmr_types 
  * \param user_data pointer to data to pass to function
  * \return 0 on fault or timer id
  */
-size_t  start_timer(unsigned int interval, time_handler handler, tmr_types type, void * user_data);
+size_t  start_timer(time_t interval, time_handler handler, tmr_types type, void * user_data);
 /**
  * Stop a running timer
  * 
