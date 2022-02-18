@@ -36,16 +36,24 @@ struct SHM_Reset{
     uint8_t msg_index;
     uint8_t *status;
 };
-
+// #define DISABLE_LEGACY_IPC
 int argonon_shm_start()
 {
     static int index[3]= {0,1,2};
     log_message(LOG_INFO + LOG_BOLD, "Initalizing IPC Channels");
+#ifdef DISABLE_LEGACY_IPC
     start_timer(100,reset_shm,TIMER_PERIODIC,NULL);
+#else
+    reset_shm();
+#endif
     start_timer(100,TMR_SHM_Interface,TIMER_PERIODIC,&index[0]);
     start_timer(100,TMR_SHM_Interface,TIMER_PERIODIC,&index[1]);
     start_timer(100,TMR_SHM_Interface,TIMER_PERIODIC,&index[2]);
+#ifdef DISABLE_LEGACY_IPC
+    ptr->status = REQ_HOLD;
+#else
     start_timer(100,TMR_Legacy_Interface,TIMER_PERIODIC,NULL);
+#endif
     return 0;
 }
 
