@@ -512,8 +512,6 @@ int main(int argc,char **argv)
             // monitor_device has produced and error
             usleep(10000);  // Shouldn't be reached but prevent overloading CPU
         } while (1);
-        Clean_Exit(0);
-#if 0 // don't do this yet
         if (count >= 19 && count <= 21)
         {
             log_message(LOG_DEBUG, "EXEC REBOOT");
@@ -526,7 +524,6 @@ int main(int argc,char **argv)
             sync();
             system("/sbin/poweroff");
         }
-#endif
     } else {
         log_message(LOG_INFO + LOG_BOLD,"Daemon Ready");
         for(;;)
