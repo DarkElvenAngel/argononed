@@ -32,6 +32,7 @@ SOFTWARE.
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <linux/gpio.h>
+#include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 #include "argononed.common.h"
 #include "identapi.h"
@@ -102,6 +103,7 @@ void Set_FanSpeed(uint8_t fan_speed)
 {
     static int file_i2c = 0;
     static uint8_t speed = 1;
+    unsigned long functions = 0;
 	if (file_i2c == 0)
     {
         char filename[14]; // = (char*)"/dev/i2c-1  ";
@@ -112,11 +114,33 @@ void Set_FanSpeed(uint8_t fan_speed)
             log_message(LOG_CRITICAL,"Failed to open the i2c bus");
             return;
         }
+        if (ioctl(file_i2c, I2C_FUNCS, &functions) < 0) {
+            log_message(LOG_WARN, "Could not get the adapter functionality matrix: %s", strerror(errno));
+        }
         int addr = 0x1a;
         if (ioctl(file_i2c, I2C_SLAVE, addr) < 0)
         {
-            log_message(LOG_CRITICAL,"Failed to acquire bus access and/or talk to slave.");
+            if (errno == EBUSY) log_message(LOG_WARN, "Device address is busy");
+            else log_message(LOG_CRITICAL,"Failed to acquire bus access");
+            close(file_i2c);
             return;
+        }
+        if ((functions & I2C_FUNC_SMBUS_QUICK))
+        {
+            struct i2c_smbus_ioctl_data args;
+            args.read_write = I2C_SMBUS_WRITE;
+            args.command = 0;
+            args.size = 0;
+            args.data = NULL;
+
+            if (ioctl(file_i2c, I2C_SMBUS, &args) < 0)
+            {
+                log_message(LOG_WARN, "Unable to detect Argon fan controller");
+                close(file_i2c);
+                return;
+            }
+            else
+                log_message(LOG_DEBUG, "Argon fan controller found");
         }
         log_message(LOG_INFO,"I2C Initialized");
     }
