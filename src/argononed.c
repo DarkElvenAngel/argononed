@@ -74,7 +74,9 @@ void signal_handler(int sig){
     switch(sig){
         case SIGHUP:
             log_message(LOG_INFO + LOG_BOLD,"Received SIGHUP Hang up");
-            //reload_config_from_shm();
+#ifndef DISABLE_LEGACY_IPC
+            reload_config_from_shm();
+#endif
             break;
         case SIGTERM:
             log_message(LOG_INFO + LOG_BOLD,"Received SIGTERM Terminate");
