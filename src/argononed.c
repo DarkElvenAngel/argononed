@@ -431,6 +431,7 @@ int daemonize(struct DTBO_Data *conf){
     signal(SIGTSTP,SIG_IGN);
     signal(SIGTTOU,SIG_IGN);
     signal(SIGTTIN,SIG_IGN);
+    signal(SIGPIPE,SIG_IGN);
     signal(SIGALRM,Alarm_handler);
     signal(SIGCHLD,signal_handler);
     signal(SIGUSR1,signal_handler);
