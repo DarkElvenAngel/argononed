@@ -48,7 +48,7 @@ SOFTWARE.
 #include <time.h>
 #include <ctype.h>
 #include <argp.h>
-#include "argononed.h"
+#include "argononed.common.h"
 
 char* RUN_STATE_STR[4] = {"AUTO", "OFF", "MANUAL", "COOLDOWN"};
 char* STATUS_STR[11] = {"Waiting for request",
@@ -64,7 +64,7 @@ char* STATUS_STR[11] = {"Waiting for request",
     "Unknown"
     };
 
-const char *argp_program_version = "argonone-cli version 0.3.1";
+const char *argp_program_version = "argonone-cli version 0.3.2";
 const char *argp_program_bug_address =
 	"<gitlab.com/darkelvenangel/argononed.git>";
 

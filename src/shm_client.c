@@ -236,6 +236,7 @@ ArgonMem* New_ArgonMem()
         r->memory = NULL;
         r->daemon_pid = 0;
     }
+    return r;
 }
 
 /**
@@ -247,7 +248,6 @@ ArgonMem* New_ArgonMem()
 int Open_ArgonMem(ArgonMem* ar_ptr)
 {
     if (ar_ptr == NULL){
-        printf("ar_ptr is NULL\n");
         return ENOMEM;
     }
     #if 1
@@ -263,7 +263,7 @@ int Open_ArgonMem(ArgonMem* ar_ptr)
          return errno;
         }
     } else {
-      fscanf (file, "%d", ar_ptr->daemon_pid);
+      fscanf (file, "%d", &ar_ptr->daemon_pid);
       fclose (file);
       if (kill(ar_ptr->daemon_pid, 0) != 0)
       {
