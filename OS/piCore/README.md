@@ -4,12 +4,12 @@ piCore is the _raspberry_ port of [TinyCore Linux (Microcore)](http://tinycoreli
 
 * when the OS is running there's no /boot mounted or available anymore
 * installation differs a lot due to
-   * BusyBox init system
-   * Persistence concept
+  * BusyBox init system
+  * Persistence concept
 
-# System setup
+## System setup
 
-The instrauction has been created based on a rather bare piCore setup [Install piCore on Raspi SD card](https://www.irkode.de/raspi/picoreSD/)
+The instruction has been created based on a rather bare piCore setup [Install piCore on Raspi SD card](https://www.irkode.de/raspi/picoreSD/)
 Tested on a Pi 4B rev1.1 running piCore 13.1
 
 ## Install Toolchain
@@ -41,7 +41,7 @@ cp dtc ~/.local/bin
 
 While installing the service we need to have write access to `/boot` on the boot partition to install the overlay and add it to `config.txt`. We are on a running system so this is not available anymore.
 
-By now I found no way to programatically find the boot partition used for the running instance. So you will have to know it.
+By now I found no way to programmatically find the boot partition used for the running instance. So you will have to know it.
 
 For a SD card installation it should be /dev/mmcblk0p1. So we can simply mount it using `mount /dev/mmcblk0p1` as piCore provides default mount points for each partition and for our example this will be `/mnt/mmcblk0p1`.
 
@@ -55,7 +55,7 @@ ls -d /mnt/mmcblk0p1/*/
 
 Now we are able to pass this as `BOOTLOC` to configure.
 
-Make also sure the distro is detected and the dependency check is successsful
+Make also sure the distro is detected and the dependency check is successful
 
 ```bash
 cd ~
@@ -98,13 +98,13 @@ ls -la build
 
 ## Install ArononeD
 
-The correct way would be to package the App as tcz archive and install. For now our customized _make install_ will do the job and install quite bare, respecting TinCore file system loayout and persistence.
+The correct way would be to package the App as tcz archive and install. For now our customized _make install_ will do the job and install quite bare, respecting TinCore file system layout and persistence.
 
 `sudo mount /dev/mmcblk0p1`
 
 `sudo make install`
 
-```
+```bash
 Installing daemon
   install argononed ... Successful
   install argonone-shutdown ... Successful
@@ -126,14 +126,14 @@ Updating /mnt/sdb1/config.txt
 Install Complete
 ```
 
-Note: Its ok if the Service could not be started, as you will miss the overlay and config.txt entries at bootup.
+Note: Its ok if the Service could not be started, as you will miss the overlay and config.txt entries at boot up.
 
 Now all should be in place. **Before** rebooting we have to save installed files.
 
 Use `filetool.sh -d` to check if all files are covered, or directly look at `/opt/.filetool.lst`
 
-   * `opt/argononed`
-   * `usr/local/bin/argonone-cli`
+* `opt/argononed`
+* `usr/local/bin/argonone-cli`
 
 persist using `filetool.sh -b`
 
@@ -162,13 +162,13 @@ argonone-cli --decode
 
 ## Uninstall
 
-To remove the package just use the _uninstall_ target. 
+To remove the package just use the _uninstall_ target.
 
 This will not revert the `i2c_arm=on` entry in `config.txt`, this may still be in use by other software installed by other means.
 
 `sudo make uninstall`
 
-```
+```bash
 Uninstalling
   stop service ... Successful
   delete application folder /opt/argononed ... Successful
