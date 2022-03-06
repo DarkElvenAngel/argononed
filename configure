@@ -42,7 +42,7 @@ STATUS=UNKNOWN
 I2CHELPER=0
 PACKAGESYS=0
 INITSYS="SYSTEMD"
-[ "x$BOOTLOC" != "x" ] && BOOTLOC="/boot"
+[ "x$BOOTLOC" = "x" ] && BOOTLOC="/boot"
 
 $ECHO -n "\033[1mDistro check [$DISTRO] : \033[0m"
 if [ -d "OS/$DISTRO" ]

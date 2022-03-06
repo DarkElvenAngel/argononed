@@ -1,0 +1,15 @@
+ifndef DESTDIR
+	DESTDIR=/opt/argononed
+endif
+ifndef LOCALDIR
+	# MUST NOT contain leading /
+	LOCALDIR=usr/local
+endif
+
+DAEMON_PATH=$(DESTDIR)/$(BIN_DAEMON)
+SHUTDOWN_PATH=$(DESTDIR)/$(BIN_SHUTDOWN)
+CLI_PATH=$(DESTDIR)/$(BIN_CLI)
+CLI_LINK=$(LOCALDIR)/bin/$(BIN_CLI)
+I2C_MODULES=/sbin/modprobe -a i2c-dev i2c-bcm2708
+
+MAKE_OVERRIDES=1

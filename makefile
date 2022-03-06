@@ -172,7 +172,7 @@ endif
 endif
 
 .PHONY: install
-install:: install-daemon install-cli install-service install-overlay
+install:: install-daemon install-cli install-overlay install-service
 ifeq ($(shell if [ -f /usr/bin/argononed ]; then echo 1; fi), 1)
 	@echo -n "Removing old daemon ... "
 	@$(RM) /usr/bin/argononed 2>/dev/null&& echo "Successful" || { echo "Failed"; true; }

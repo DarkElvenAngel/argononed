@@ -1,0 +1,106 @@
+OVERRIDE_INSTALL_DAEMON=1
+OVERRIDE_INSTALL_CLI=1
+OVERRIDE_INSTALL_OVERLAY=1
+OVERRIDE_INSTALL_SERVICE=1
+OVERRIDE_UNINSTALL=1
+
+I2C_ARM_ARG=dtparam=i2c_arm=on
+I2C_ARM_CMT=\#$(I2C_ARM_ARG)
+
+.PHONY: all
+all:: strip
+
+.PHONY: strip
+strip: $(BIN_DAEMON) $(BIN_CLI) $(BIN_SHUTDOWN)
+	-sstrip -z build/$(BIN_DAEMON) build/$(BIN_CLI) build/$(BIN_SHUTDOWN)
+
+.PHONY: install-daemon
+install-daemon:
+	@echo "Installing daemon"
+	@echo -n "  install $(BIN_DAEMON) ... "
+	@$(INSTALL) -D -m 0700 build/$(BIN_DAEMON) $(DAEMON_PATH) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "  install $(BIN_SHUTDOWN) ... "
+	@$(INSTALL) -D -m 0700 build/$(BIN_SHUTDOWN) $(SHUTDOWN_PATH) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+
+.PHONY: install-cli
+install-cli:
+	@echo "Installing argonone client"
+	@echo -n "  install $(BIN_CLI) ... "
+	@$(INSTALL) -D -m 0755 build/$(BIN_CLI) $(CLI_PATH) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "  link to /$(CLI_LINK) ..."
+	@[ ! -f /$(CLI_LINK) ] && ln -s $(CLI_PATH) /$(CLI_LINK) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+
+	@sed -i "/$(subst /,\/,$(CLI_LINK))/d" /opt/.filetool.lst
+	@echo -n "  persist link in /opt/.filetool.lst ..."
+	@echo "$(CLI_LINK)" >> /opt/.filetool.lst 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+
+.PHONY: install-overlay
+install-overlay:
+	@echo "Installing overlay"
+	@test -d $(BOOTLOC) || { echo "ERROR: missing folder: ${BOOTLOC}"; exit 1;}
+	@test -d $(BOOTLOC)/overlays || { echo "ERROR: missing folder: ${BOOTLOC}/overlays"; exit 1;}
+	@test -f $(BOOTLOC)/config.txt || { echo "ERROR: missing ${BOOTLOC}/config.txt"; exit 1;}
+	@echo -n "  install overlay to $(BOOTLOC)/overlays ..."
+	@$(INSTALL) build/argonone.dtbo $(BOOTLOC)/overlays/argonone.dtbo 2>/dev/null && echo "Successful" || { echo "Failed"; }
+	@echo "Updating $(BOOTLOC)/config.txt"
+	@$(SHELL) ./OS/_common/setup-overlay.sh $(BOOTLOC)/config.txt
+ifneq (,$(wildcard $(BOOTLOC)/config.txt))
+	@echo -n "  activate I2C bus ... "
+ifeq ($(I2C_ARM_CMT),$(findstring $(I2C_ARM_CMT), $(shell cat $(BOOTLOC)/config.txt)))
+	@sed -i "s/#$(I2C_ARM_ARG)/$(I2C_ARM_ARG)/" $(BOOTLOC)/config.txt 2>/dev/null && echo "Successful" || { echo "Failed"; }
+else
+ifneq ($(I2C_ARM_ARG),$(findstring $(I2C_ARM_ARG), $(shell cat $(BOOTLOC)/config.txt)))
+	@echo "$(I2C_ARM_ARG)" >> $(BOOTLOC)/config.txt && echo "Successful" || { echo "Failed"; }
+else
+	@echo "skipped - already there"
+endif
+endif
+endif
+
+.PHONY: install-service
+install-service:
+	@echo "Installing services"
+# brute force removal to avoid duplicates and ensure proper order of entries
+	@sed -i "/$(subst /,\/,$(I2C_MODULES))/d" /opt/bootlocal.sh
+	@sed -i "/$(subst /,\/,$(DAEMON_PATH))/d" /opt/bootlocal.sh
+	@sed -i "/$(subst /,\/,$(SHUTDOWN_PATH))/d" /opt/shutdown.sh
+	@sed -i "/argononed.pid/d" /opt/shutdown.sh
+
+	@echo -n "  add I2C modules to /opt/bootlocal.sh ... "
+	@echo "$(I2C_MODULES)" >> /opt/bootlocal.sh 2>/dev/null 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "  add $(BIN_DAEMON) to /opt/bootlocal.sh ... "
+	@echo "$(DAEMON_PATH)" >> /opt/bootlocal.sh 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "  add terminate command to /opt/shutdown.sh ... "
+	@sed -i "/^# put user shutdown commands here.*/a [ -f /run/argononed.pid ] && kill \`cat /run/argononed.pid\`" /opt/shutdown.sh 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@echo -n "Starting Service "
+	@timeout 5s $(DAEMON_PATH) &>/dev/null && echo "Successful" || { ( [ $$? -eq 124 ] && echo "Timeout" || echo "Failed" ) }
+
+.PHONY: uninstall
+uninstall::
+	@echo "Uninstalling"
+	@echo -n "  stop service ... "
+ifneq (,$(wildcard /run/argononed.pid))
+	@kill `cat /run/argononed.pid` && echo "Successful" || echo "Failed"
+else
+	@pkill argononed >/dev/null 2>&1 && echo "Successful" || echo "Failed"
+endif
+	@echo -n "  delete application folder $(DESTDIR) ... "
+	@$(RM) -rf $(DESTDIR) >/dev/null 2>&1 && echo "Successful" || echo "Failed"
+	@echo -n "  delete /$(CLI_LINK) ... "
+	@$(RM) -f /$(CLI_LINK) >/dev/null 2>&1 && echo "Successful" || echo "Failed"
+	@echo -n "  remove overlay $(BOOTLOC)/overlays/argonone.dtbo ... "
+	@$(RM) -f $(BOOTLOC)/overlays/argonone.dtbo >/dev/null 2>&1 && echo "Successful" || echo "Failed"
+
+	@echo "  Cleanup system files"
+	@echo -n "    remove $(CLI_LINK) from /opt/.filetool.lst ... "
+	@sed -i "/$(subst /,\/,$(CLI_LINK))/d" /opt/.filetool.lst && echo "Successful" || echo "Failed"
+	@echo -n "    remove kill command from from /opt/shutdown.sh ... "
+	@sed -i "/argononed.pid/d" /opt/shutdown.sh && echo "Successful" || echo "Failed"
+	@echo -n "    delete $(I2C_MODULES) from /opt/bootlocal.sh ... "
+	@sed -i "/$(subst /,\/,$(I2C_MODULES))/d" /opt/bootlocal.sh && echo "Successful" || echo "Failed"
+	@echo -n "    delete $(DAEMON_PATH) from /opt/bootlocal.sh ... "
+	@sed -i "/$(subst /,\/,$(DAEMON_PATH))/d" /opt/bootlocal.sh && echo "Successful" || echo "Failed"
+	@echo -n "    delete dtoverlay=argonone from $(BOOTLOC)/config.txt ... "
+	@sed -i "/^dtoverlay=argonone/d" $(BOOTLOC)/config.txt 2>/dev/null && echo "Successful" || echo "Failed"
+	@echo "  NOTE: we did not remove $(I2C_ARM_ARG) from $(BOOTLOC)/config.txt"
+	@echo "        In case it is not needed anymore, you may manually delete/uncomment that."
