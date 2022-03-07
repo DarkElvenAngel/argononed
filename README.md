@@ -55,10 +55,13 @@ The installer now requires you to run ```./configure``` before you run make. Thi
 * [Alpine Linux](OS/alpine/README.md) **SEE LINK**
 * opensuse Thanks to @fridrich
 * opensuse-microos **EXPERIMENTAL**
+* piCore Thanks to @irkode **0.4.x ONLY see note** *\***
 
 If your OS isn't on this list it means that the installer isn't setup for your OS and it *may* or *may not* be able to install on your system.
 
 *\** *Support for this OS is with the self extracting package system. SEE BELOW*
+
+*\*** *Support for this OS is only with the newer 0.4.x branch, you must manually switch branches*
 
 ## Logging Options
 
