@@ -24,16 +24,18 @@ SOFTWARE.
 
 #include "argononed.common.h"
 
+#include <argp.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <argp.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define MAX_LEN 256
 
 /**
- * Initialize the configuration
+ * \brief Initialize the configuration
  * 
  * \param struct DTBO_Data* configuration
  * \return int
@@ -45,6 +47,7 @@ int Init_Configuration(struct DTBO_Data* conf)
       .thresholds = { 55, 60, 65 },
       .hysteresis = 3
   };
+  memset(&conf->configuration, 0, sizeof(struct DTBO_Data));
   memcpy(&conf->configuration, &defaults, sizeof(struct DTBO_Config));
 
   conf->Log_Level = LOG_LEVEL;
@@ -60,10 +63,12 @@ int Init_Configuration(struct DTBO_Data* conf)
   return 0;
 }
 /**
- * Check the configuration
+ * \brief Check the configuration
+ * 
+ *  Confirm the source configuration values are set correctly and apply them to configuration
  * 
  * \param struct DTBO_Data* configuration
- * \param struct DTBO_Data* src)
+ * \param struct DTBO_Data* src
  * \param int Full_check
  * \return int
  */
@@ -142,6 +147,20 @@ int Read_DeviceTree_Data(struct DTBO_Data* conf)
     FILE *fp = NULL;
     uint32_t ret = 0;
     struct DTBO_Config datain = {0};
+    struct stat s = {0};
+    if (stat("/proc/device-tree/argonone", &s))
+    {
+        log_message(LOG_BOLD + LOG_DEBUG, "STAT() %s", strerror(errno));
+        memset(conf->version,0,sizeof(conf->version));
+        conf->extra.bus  = 1;
+        log_message(LOG_WARN,"Overlay not detected");
+        #ifndef DISABLE_POWERBUTTON
+        conf->extra.flags.PB_DISABLE = 1;
+        log_message(LOG_INFO,"Disabling Power Button.");
+        #endif
+        return -1;
+    }
+    fp = fopen("/proc/device-tree/argonone/argonone-cfg","rb");
     log_message(LOG_INFO,"Reading values from device-tree");
     fp = fopen("/proc/device-tree/argonone/argonone-ver","rb");
     if (fp == NULL)
@@ -270,7 +289,7 @@ static int get_vals(char text[], unsigned char* val, int max_elements, int offse
 }
 
 /**
- * Read Configuration File
+ * \brief Read Configuration File
  * 
  * \param filename configuration file's name
  * \param conf pointer to Configuration structer
