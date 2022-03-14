@@ -7,6 +7,7 @@
 * Added Command Line arguments
 * Deprecated argonone-cli
 * Added Argon IR REMOTE support
+* Added Error Flags to SHM_Stats
 
 0.3.4
 

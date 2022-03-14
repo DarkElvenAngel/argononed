@@ -91,3 +91,14 @@ These flags are used to set what type of request is being set.  It is possible f
 ## New changes to Shared Memory
 
 Shared memory IPC has been expanded beyond the above mentioned limits and the interface is improving and expanding. New fields are being added to facilitate proper message areas better, daemon status reporting, and statistical tracking.
+
+New Flags are now added to Status these flags will help pin point where the more general error counts have occurred.
+
+- **EF_I2C** - There is an error in the i2c bus
+- **EF_TEMP** - There is an error in temperature retrieval
+- **EF_GPIO** - There is an error in the GPIO interface
+- **EF_IPC** - There is an error in the IPC subsystem
+- **EF_FAN** - There is an error fan controller not found
+- **EF_CONF** - There is an error in configuration
+- **EF_DT** - There is an error in Device Tree Overlay retrieval
+- **EF_ARG** - There is an error in the command line arguments

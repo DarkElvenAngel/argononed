@@ -78,6 +78,21 @@ struct SHM_DAEMON_STATS {
     uint8_t EF_Warning;
     uint8_t EF_Error;
     uint8_t EF_Critical;
+    union
+    {
+        struct {
+            uint8_t EF_I2C          : 1;    // There is an error in the i2c bus
+            uint8_t EF_TEMP         : 1;    // There is an error in temperature retrieval
+            uint8_t EF_GPIO         : 1;    // There is an error in the GPIO interface
+            uint8_t EF_IPC          : 1;    // There is an error in the IPC subsystem
+
+            uint8_t EF_FAN          : 1;    // There is an error fan controller not found
+            uint8_t EF_CONF         : 1;    // There is an error in configuration
+            uint8_t EF_DT           : 1;    // There is an error in Device Tree Overlay retrieval
+            uint8_t EF_ARG          : 1;    // There is an error in the command line arguments
+        };
+        uint8_t EF_Flags;
+    };
 };
 
 struct DTO_FLAGS{
