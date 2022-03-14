@@ -60,6 +60,12 @@ typedef enum {
     LOG_INVERT = 16
 } Log_Level;
 
+/**
+ * \brief Schedule struct holds setting for when the fan is triggered, speed, and hysteresis
+ * 
+ * /struct Schedule
+ * 
+ */
 typedef struct DTBO_Config {
     uint8_t fanstages[3];
     uint8_t thresholds[3];
@@ -86,21 +92,29 @@ struct DTO_FLAGS{
     };
 };
 
+/**
+ * \brief Devicetree extra 
+ * 
+ */
 struct DTO_EXTRA{
-    uint8_t bus;
-    struct DTO_FLAGS flags;
+    uint8_t bus;                                // i2c bus number
+    struct DTO_FLAGS flags;                     // Devicetree flag settings
 }; 
 
+/**
+ * \brief Struct used to hold Daemon configuration
+ * 
+ */
 typedef struct DTBO_Data{
-    uint8_t             version[3];
-    uint8_t             Log_Level;
-    Schedule            configuration;
-    struct DTO_EXTRA    extra;
-    char*               filename;
-    uint8_t             colour;
-    uint8_t             runstate;
-    uint8_t             temperature_target;
-    uint8_t             fanspeed_Overide;
+    uint8_t             version[3];             // Devicetree overlay version
+    uint8_t             Log_Level;              // Log level
+    Schedule            configuration;          // Schedule \see Schedule
+    struct DTO_EXTRA    extra;                  // Devicetree extra
+    char*               filename;               // Configuration file name
+    uint8_t             colour;                 // Colour output
+    uint8_t             runstate;               // Fan mode
+    uint8_t             temperature_target;     // Target temperature used with Cooldown mode
+    uint8_t             fanspeed_Overide;       // Fan speed used only for Manual and Cooldown modes
 } Daemon_Conf;
 
 struct SHM_REQ_MSG {
@@ -143,7 +157,7 @@ struct SHM_Data {               //  DAEMON  |   CLIENT
 }; // current size - 14 bytes
 
 /**
- * Write formatted output to Log file.
+ * \brief Write formatted output to Log file.
  * 
  * \param level Message's Log level
  * \param message formatted text to output
@@ -151,20 +165,20 @@ struct SHM_Data {               //  DAEMON  |   CLIENT
  */
 void log_message(Log_Level level, const char *message, ...);
 /**
- * Initialize the configuration
+ * \brief Initialize the configuration
  * 
  * \param struct DTBO_Data* configuration
  * \return int
  */
 int Init_Configuration(struct DTBO_Data* conf);
 /**
- * @brief Send Configuration output to log
+ * \brief Send Configuration output to log
  * 
  * \param struct DTBO_Data* configuration
  */
 void Configuration_log(struct DTBO_Data* conf);
 /**
- * Check the configuration
+ * \brief Check the configuration
  * 
  * \param struct DTBO_Data* configuration
  * \param struct DTBO_Data* src)
@@ -173,7 +187,7 @@ void Configuration_log(struct DTBO_Data* conf);
  */
 int Check_Configuration(struct DTBO_Data* conf, struct DTBO_Config src, int Full_check);
 /**
- * Read Device Tree Data
+ * \brief Read Device Tree Data
  * 
  * \param struct DTBO_Data* configuration
  * \return int
@@ -189,7 +203,7 @@ int Read_DeviceTree_Data(struct DTBO_Data* conf);
  */
 int Read_Configuration_File(const char* filename, struct DTBO_Data* conf);
 /**
- * Parse Command Line Arguments
+ * \brief Parse Command Line Arguments
  * 
  * \param argc
  * \param argv

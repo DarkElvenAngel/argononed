@@ -39,21 +39,22 @@ SOFTWARE.
 #include "event_timer.h"
 #include "argonone_shm.h"
 
-struct SHM_Data* ptr = NULL;
-Daemon_Conf Configuration = { 0 };
+struct SHM_Data* ptr = NULL;            // Global Shared Memory Pointer
+Daemon_Conf Configuration = { 0 };      // Global Daemon Configuration
 
 void TMR_Get_temp(size_t timer_id, void *user_data);
 void Set_FanSpeed(uint8_t fan_speed);
 
 /**
- * Prepare daemon for shutdown.
+ * \brief Prepare daemon for shutdown.
  * 
  * \return none
  */ 
 void Clean_Exit(int status)
 {
     log_message(LOG_INFO, "Begin Daemon Clean up");
-    //TMR_Get_temp(0,"0");
+    uint8_t cmd = 1;
+    TMR_Get_temp(0,&cmd);
     Set_FanSpeed(0);
     Set_FanSpeed(0xFF);
     log_message(LOG_DEBUG,"  Clean_Exit close_timers()"); close_timers();
@@ -65,7 +66,9 @@ void Clean_Exit(int status)
 }
 
 /**
- * Signal handler
+ * \brief Signal handler
+ * 
+ * \attention This function should not be called directly
  * 
  * \param sig Signal received 
  * \return none
@@ -87,24 +90,39 @@ void signal_handler(int sig){
             Clean_Exit(0);
             break;
         default:
-            log_message(LOG_INFO + LOG_BOLD,"Received Signal number %d",sig);
+            log_message(LOG_INFO + LOG_BOLD,"Received Signal %s", strsignal(sig));
     }
 }
+
+/**
+ * \brief Alarm signal handler
+ * 
+ * \attention This function shouldn't be called directly
+ *  
+ * \param sig ignored
+ */
 void Alarm_handler(int sig __attribute__((unused)))
 {
     log_message(LOG_DEBUG + LOG_BOLD,"Received Signal ALARM");
 }
 
 /**
- * Set command to the argon one micro controller
+ * \brief Send fan speed request to the argon micro controller
  * 
- * \param fan_speed 0-100 to set fanspeed or 0xFF to close I2C interface
+ * This function will attempt connect to the configured i2c bus.
+ * On the event of a bus error the connection is closed and reset
+ * 
+ * \attention THERE IS NO ERROR FEEDBACK
+ * 
+ * \todo Add Error feedback and i2c bus scanning
+ * 
+ * \param[in] fan_speed 0-100 to set fanspeed or 0xFF to close I2C interface
  * \return none
  */
 void Set_FanSpeed(uint8_t fan_speed)
 {
-    static int file_i2c = 0;
-    static uint8_t speed = 1;
+    static int file_i2c = 0;        // i2c file descripter
+    static uint8_t speed = 1;       // Current fan speed 
     unsigned long functions = 0;
 	if (file_i2c == 0)
     {
@@ -114,6 +132,7 @@ void Set_FanSpeed(uint8_t fan_speed)
         if ((file_i2c = open(filename, O_RDWR)) < 0)
         {
             log_message(LOG_CRITICAL,"Failed to open the i2c bus");
+            file_i2c = 0;  // Reset to zero this will allow the daemon to retry the connection
             return;
         }
         if (ioctl(file_i2c, I2C_FUNCS, &functions) < 0) {
@@ -125,6 +144,7 @@ void Set_FanSpeed(uint8_t fan_speed)
             if (errno == EBUSY) log_message(LOG_WARN, "Device address is busy");
             else log_message(LOG_CRITICAL,"Failed to acquire bus access");
             close(file_i2c);
+            file_i2c = 0; // Reset so the i2c can reconnect if needed
             return;
         }
         if ((functions & I2C_FUNC_SMBUS_QUICK))
@@ -139,6 +159,7 @@ void Set_FanSpeed(uint8_t fan_speed)
             {
                 log_message(LOG_WARN, "Unable to detect Argon fan controller");
                 close(file_i2c);
+                file_i2c = 0; // Reset so the i2c can reconnect on a different bus if requested
                 return;
             }
             else
@@ -158,13 +179,94 @@ void Set_FanSpeed(uint8_t fan_speed)
     } else if (fan_speed == 0xFF)
     {
         close(file_i2c);
-        log_message(LOG_INFO,"I2C Closed");
+        file_i2c = 0; // Reset so the i2c can reconnect if needed
+        log_message(LOG_INFO,"i2c closed");
     }
 }
 /**
- * Read temperature and process temperature data
+ * \brief Read the CPU temperature
+ * 
+ * Fetch the CPU temperature, this will use the configured interface
+ * if the temperature cannot be read then return -1 and do not update
+ * CPU_Temp
+ * 
+ * \param[OUT] CPU_Temperature* pointer to hold CPU temperature
+ * \param[IN] command 0 get temperature, 1 close fd if open
+ * \return 0 if CPU_Temp is valid 
+ */
+int Get_CPU_Temp(uint32_t *CPU_Temperature, uint8_t command)
+{
+    uint32_t CPU_Temp = 0;
+    static int32_t fdtemp = 0;
+    int return_val = 0;
+    FILE* fptemp = 0;
+    uint32_t property[10] =
+    {
+        0x00000000,
+        0x00000000,
+        0x00030006,
+        0x00000008,
+        0x00000004,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000
+    };
+    if (Configuration.extra.flags.USE_SYSFS)
+    {
+        char filename[36];
+        snprintf(filename,36,"/sys/class/hwmon/hwmon%d/temp1_input", Configuration.extra.flags.SET_HWMON_NUM);
+        log_message(LOG_DEBUG,"Open %s for temperature ",filename);
+        fptemp = fopen(filename, "r");
+        if (fptemp)
+        {
+            fscanf(fptemp, "%d", &CPU_Temp);
+            fclose(fptemp);
+        } else {
+            return_val = -1;
+            log_message(LOG_CRITICAL, "Temperature can not be monitored!!");
+        }
+        CPU_Temp = CPU_Temp / 1000;
+    } else {
+        property[0] = 10 * sizeof(property[0]);
+        if (command == 0)
+        {
+            if (fdtemp == 0)
+            {
+                fdtemp = open("/dev/vcio", 0);
+                if (fdtemp == -1)
+                {
+                    log_message(LOG_CRITICAL, "Cannot access VideoCore I/O!");
+                    return_val = -1;
+                    log_message(LOG_CRITICAL, "Temperature can not be monitored!!");
+                }
+            }
+            if (ioctl(fdtemp, _IOWR(100, 0, char *), property) == -1)
+            {
+                log_message(LOG_CRITICAL, "Cannot get CPU Temp!");
+                return_val = -1;
+                log_message(LOG_CRITICAL, "Temperature can not be monitored!!");
+            }
+        CPU_Temp = property[6] / 1000;
+        } else {
+            close(fdtemp);
+            log_message(LOG_INFO, "Successfully closed temperature sensor");
+        }
+    }
+    if (return_val != 0)
+    {
+        close(fdtemp);
+        fdtemp = 0;
+    } else *CPU_Temperature = CPU_Temp;
+    return return_val;
+}
+
+/**
+ * \brief Read temperature and process temperature data
  * 
  * \note This is meant to be called with a Timer.
+ * \bug  If the temperature cannot be monitored then fan control isn't possible.
  * \param timer_id calling timer id
  * \param user_data pointer to argument data
  * \return none
@@ -173,6 +275,9 @@ void TMR_Get_temp(size_t timer_id, void *user_data)
 {
     uint32_t CPU_Temp = 0;
 	static uint8_t fanspeed = 0;
+    static uint8_t temp_error = 0;
+    uint8_t command = (user_data == NULL ? 0 :*(uint8_t*)user_data);
+#if 0
     static int32_t fdtemp = 0;
     FILE* fptemp = 0;
     uint32_t property[10] =
@@ -190,7 +295,7 @@ void TMR_Get_temp(size_t timer_id, void *user_data)
     };
     if (Configuration.extra.flags.USE_SYSFS)
     {
-        char filename[36]; // = (char*)"/dev/i2c-1  ";
+        char filename[36];
         snprintf(filename,36,"/sys/class/hwmon/hwmon%d/temp1_input", Configuration.extra.flags.SET_HWMON_NUM);
         log_message(LOG_DEBUG,"Open %s for temperature ",filename);
         fptemp = fopen(filename, "r");
@@ -232,6 +337,21 @@ void TMR_Get_temp(size_t timer_id, void *user_data)
             return;
         }
     } 
+#endif
+    switch (command)
+    {
+        case 0:
+            if (temp_error == 0)
+                if (Get_CPU_Temp(&CPU_Temp, 0) != 0)
+                {
+                    temp_error = 1;
+                    return;
+                }
+            break;
+        default:
+            Get_CPU_Temp(&CPU_Temp, command);
+    }
+
     #if 1 // SKIP FAN SWITCHING
     switch (Configuration.runstate)
     {
@@ -280,10 +400,10 @@ void TMR_Get_temp(size_t timer_id, void *user_data)
     if ( (ptr->stat.min_temperature == 0) || (CPU_Temp < ptr->stat.min_temperature)) ptr->stat.min_temperature = (uint8_t)CPU_Temp;
 }
 /**
- * This Function is used to watch for the power button events.
+ * \brief This Function is used to watch for the power button events.
  * 
  * \note Call is Blocking
- * \param Pulse_Time_ms pointer used to hold the pulse time in ms 
+ * \param[out] Pulse_Time_ms pointer used to hold the pulse time in ms 
  * \return 0 when Pule_Time_ms is valid or error code
  */
 int32_t monitor_device(uint32_t *Pulse_Time_ms)
@@ -382,8 +502,10 @@ exit_close_error:
 	return ret;
 }
 /**
- * Fork into a daemon
+ * \brief Fork into a daemon
  * \note only call once
+ * 
+ * \param *conf Current configuration
  * 
  * \return none
  */

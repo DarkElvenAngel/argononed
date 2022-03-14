@@ -28,14 +28,22 @@ SOFTWARE.
 #include <string.h>
 #include <time.h>
 
+/**
+ * \brief Log level to string
+ * 
+ */
 const char* LOG_LEVEL_STR[7] = {"NONE", "FATAL", "CRITICAL", "ERROR", "WARNING", "INFO",  "DEBUG"};
 
+/**
+ * \brief Convert log level to colour
+ * 
+ */
 const uint8_t LOG_COLOUR[6] = { 91, 95, 31, 93, 96, 92 };
 extern struct SHM_Data* ptr;
 extern struct DTBO_Data Configuration;
 
 /**
- * Write formatted output to Log file.
+ * \brief Write formatted output to Log file.
  * 
  * \param level Message's Log level
  * \param message formatted text to output
