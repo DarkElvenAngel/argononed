@@ -2,11 +2,9 @@
 
 A replacement daemon for the Argon One Raspberry Pi cases, and the Argon Artik Fan Hat.
 
-## WARNING ALPHA STAGE
+## WARNING The is branch is under active development
 
-**THIS BRANCH IS ALPHA STAGE ONLY!!!**
-
-Not all features are working, present, and/or stable.
+Not all features are working, present, and/or stable. Functions and instruction subject to change without notice.  Please check the compile code works before you install it.
 
 ## What's new in 0.4.x
 
@@ -83,7 +81,7 @@ Version 0.1.0 of the overlay has additional settings
 
 This overlay version also presets the GPIO 4 as and input with it's pull down resistor enabled.
 
-### Example config.txt
+#### Example config.txt
 
 In this example the hysteresis will be set to 5 and the fan will start at 50℃
 
@@ -105,15 +103,55 @@ The default configuration is loaded from the `config.txt` via the *device-tree* 
 * i2cbus - change the i2c bus address default is 1 and this value is rarely changed.
 * flags - see Advanced Build Options for values. **IMPORTANT this value is in HEX format**
 
+#### Example configuration file
+
+```conf
+# argononed configuration
+fans = 50, 75, 100
+temps = 50, 60, 65
+hysteresis = 10
+
+flags = 0x04
+```
+
 ### Command Line Arguments
 
 The daemon now accepts command line arguments.
+
+```text
+      --fan0=VALUE           Set Fan1 value
+      --fan1=VALUE           Set Fan2 value
+      --fan2=VALUE           Set Fan3 value
+      --fans=VALUE           Set Fan values
+      --hysteresis=VALUE     Set Hysteresis
+      --temp0=VALUE          Set Temperature1 value
+      --temp1=VALUE          Set Temperature2 value
+      --temp2=VALUE          Set Temperature3 value
+      --temps=VALUE          Set Temperature values
+      --conf=FILENAME        load config
+      --forceflag=VALUE      Force flags to VALUE
+  -F, --forground            Run in Forground
+  -l, --loglevel=VALUE       Set Log level
+  -c, --colour               Run in Forground with colour
+      --dumpconf             Dump build config
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+  -V, --version              Print program version
+```
+
+These are subject to change before release.
+
+#### Example comand line
+
+`# argononed -cl6 --conf=/tmp/argononed.conf` This will start the in foreground with colour output, set the log level to 6 *DEBUG* and set the configuration file to **/tmp/argononed.conf**
 
 ### Final word on configuration
 
 If you are an advanced user and need to easily set multiple configurations it is recommended not to use build flags to disable/force default features that can be set with flags.  As these features will be unavailable to switch on without recompile.
 
-If you make a typo in the configuration file you will get warnings in log.
+An example of this would be the **DISABLE_POWERBUTTON** flag if you build with this option enabled it will no longer be possible to use the power button.
+
+If you make a typo in the configuration file you will get warnings in log.  This will also set the **EF_CONF** flag.  Likewise a mistake on the command line arguments will set the *EF_ARG** flag.
 
 ## Upgrading to the latest version
 
@@ -191,3 +229,66 @@ argonone-cli --commit
 ```
 
 The changes **MUST** in one shot and have `--commit` them for them to take effect.
+
+## New error flags
+
+New error flags are being added to share memory and will soon be available in a memory decode. The goal of these flags is to make determining the source of an error more obvious without the need to dive through logs that may be disabled depending on your build options.
+
+```text
+>> DECODEING MEMORY <<
+Fan Status OFF Speed 0%
+System Temperature 45°
+Hysteresis set to 10°
+Fan Speeds set to 10% 55% 100%
+Fan Temps set to 55° 60° 65°
+Fan Mode [ AUTO ] 
+Fan Speed Override 0% 
+Target Temperature 0° 
+Daemon Status : Waiting for request
+Maximum Temperature : 45°
+Minimum Temperature : 44°
+Daemon Warnings : 0
+Daemon Errors : 0
+Daemon Critical Errors : 3
+```
+
+This is the current output of `argonone-cli --decode` you can see something is wrong but what it is we have to look into the logs.
+
+```text
+>> DECODEING MEMORY <<
+Fan Status OFF Speed 0%
+System Temperature 45°
+Hysteresis set to 10°
+Fan Speeds set to 10% 55% 100%
+Fan Temps set to 55° 60° 65°
+Fan Mode [ AUTO ] 
+Fan Speed Override 0% 
+Target Temperature 0° 
+Daemon Status : Waiting for request
+Maximum Temperature : 45°
+Minimum Temperature : 44°
+Daemon Warnings : 0
+Daemon Errors : 0
+Daemon Critical Errors : 3
+Error Flag(s) set
+    i2c bus
+```
+
+With the flags you can see the error is with the i2c bus.  Once `argonctl` is complete you will be able to diagnose and possible fix problems like this without restarting.
+
+## The new `argonctl`
+
+The `argonctl` tool was meant to replace the `argonone-cli`, `argonctl` will do everything `argonone-cli` can do and more.  Since this tool is in the planning stage this can all change.
+
+The argonone daemon is moving away from the shared memory method of interacting and controlling things.  The daemon will instead use sockets this will allow for two way communications and some of these new features.
+
+The proposed features are
+
+* Changing the schedule or mode *much like the current tool.*
+* Loading or saving the configurations
+* Monitor mode get real time data from the daemon
+* Logging client no matter the loglevel of the daemon you can use the logging client to read log events.
+* send commands example restart i2c
+* read status the is much like `argonone-cli --decode`
+* IR controls the argon one V2 has a built-in IR sensor that can be programed
+* Fan control **without** the daemon!!  send fan command directly to the controller with or without the daemon.
