@@ -4,7 +4,7 @@ A replacement daemon for the Argon One Raspberry Pi cases, and the Argon Artik F
 
 ## How To Install
 
-Firstly you need to have a build environment setup, that includes the following `gcc dtc git bash linux-headers make git`  
+Firstly you need to have a build environment setup, that includes the following `gcc dtc git bash linux-headers make`  
 *NOTE : The package names will be different depending on your OS so I've only given their binary names. Refer to your distribution for what you need to install.*  
 
 I've tried to make the installer as simple as possible. After cloning this repo simply run ```./install``` You may need to reboot for full functionality.
@@ -55,11 +55,14 @@ The installer now requires you to run ```./configure``` before you run make. Thi
 * [Alpine Linux](OS/alpine/README.md) **SEE LINK**
 * opensuse Thanks to @fridrich
 * opensuse-microos **EXPERIMENTAL**
+* piCore Thanks to @irkode **0.4.x ONLY see note** *\***
 * [NixOS](OS/nixos/README.md) **SPECIAL** _(Please see link for this OS)_ Thanks to @ykis-0-0 for all the hard work required for this one
 
 If your OS isn't on this list it means that the installer isn't setup for your OS and it *may* or *may not* be able to install on your system.
 
 *\** *Support for this OS is with the self extracting package system. SEE BELOW*
+
+*\*** *Support for this OS is only with the newer 0.4.x branch, you must manually switch branches*
 
 ## Logging Options
 
@@ -167,3 +170,13 @@ INFO:  Packing files ... OK
 INFO:  Verify package ... OK
 INFO:  Package build/libreelec.pkg.sh is complete 
 ```
+
+## Argon Artik Hat
+
+If you have an Argon Artik Hat and you see these error message:  
+
+`Failed to load HAT overlay`
+
+`dterror: not a valid FDT - err - 9`  
+
+Check out my [firmware fix](firmware/README.md).
