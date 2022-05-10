@@ -55,6 +55,7 @@ The installer now requires you to run ```./configure``` before you run make. Thi
 * [Alpine Linux](OS/alpine/README.md) **SEE LINK**
 * opensuse Thanks to @fridrich
 * opensuse-microos **EXPERIMENTAL**
+* [NixOS](OS/nixos/README.md) **SPECIAL** _(Please see link for this OS)_ Thanks to @ykis-0-0 for all the hard work required for this one
 
 If your OS isn't on this list it means that the installer isn't setup for your OS and it *may* or *may not* be able to install on your system.
 
