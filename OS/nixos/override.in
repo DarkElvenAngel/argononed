@@ -1,0 +1,35 @@
+# NIXOS
+
+# DESTINATION IS DEFINED AS $NIX_DRVOUT
+SHUTDOWN_PATH=$(NIX_DRVOUT)
+
+OVERRIDE_INSTALL_DAEMON=1
+OVERRIDE_INSTALL_CLI=1
+OVERRIDE_INSTALL_SERVICE=1
+OVERRIDE_INSTALL_OVERLAY=1
+OVERRIDE_UNINSTALL=1 # Empty Override since unintall isn't a thing in NixOS
+
+.PHONY: install-daemon
+# Logrotate is to be handled in default.nix
+install-daemon:
+	@echo -n "Deploy daemon to Nix store "
+	@$(INSTALL) build/$(BIN_DAEMON) $(NIX_DRVOUT)/$(BIN_DAEMON) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@$(INSTALL) -m 0600 OS/_common/argononed.logrotate $(NIX_DRVOUT)/argononed.logrotate
+
+.PHONY: install-cli
+# Bash completions is to be handled in pkg.nix
+install-cli:
+	@echo -n "Installing CLI "
+	@$(INSTALL) -Dm 0755 build/$(BIN_CLI) $(NIX_DRVOUT)/bin/$(BIN_CLI) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+
+.PHONY: install-service
+install-service:
+	@echo "Service unit installation delegated to Nix"
+	@echo -n "Deploy argonone-shutdown to Nix store "
+	@$(INSTALL) $(SHUTDOWN_FILE) $(SHUTDOWN_PATH) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+
+.PHONY: install-overlay
+install-overlay:
+	@echo -n "Deploy device tree overlay to Nix store "
+	@$(INSTALL) -m 0644 build/argonone.dtbo $(NIX_DRVOUT) 2>/dev/null && echo "Successful" || { echo "Failed"; }
+
