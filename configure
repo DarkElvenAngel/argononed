@@ -47,7 +47,7 @@ INITSYS="SYSTEMD"
 $ECHO -n "\033[1mDistro check [$DISTRO] : \033[0m"
 if [ -d "OS/$DISTRO" ]
 then 
-    [ -f "OS/$DISTRO/OS.conf" ] && source OS/$DISTRO/OS.conf
+    [ -f "OS/$DISTRO/OS.conf" ] && . OS/$DISTRO/OS.conf
     case $STATUS in
     "OK")
         COLOUR=32
