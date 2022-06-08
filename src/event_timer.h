@@ -1,6 +1,7 @@
 #ifndef EVENT_TIME_H
 #define EVENT_TIME_H
 #include <stdlib.h>
+#include <time.h>
 
 typedef enum
 {
