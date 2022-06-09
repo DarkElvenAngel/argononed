@@ -171,6 +171,10 @@ INFO:  Verify package ... OK
 INFO:  Package build/libreelec.pkg.sh is complete 
 ```
 
+### Docker solution for packager
+
+I have a docker solution for building packages read about it [here](docker/README.md)
+
 ## Argon Artik Hat
 
 If you have an Argon Artik Hat and you see these error message:  

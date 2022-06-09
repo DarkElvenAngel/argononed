@@ -1,0 +1,9 @@
+FROM arm32v6/alpine:latest
+
+RUN apk add gcc dtc git argp-standalone bash build-base linux-headers && git clone https://gitlab.com/DarkElvenAngel/argononed.git && mkdir /output
+
+WORKDIR /argononed
+
+COPY dockerrun.sh /argononed/dockerrun.sh
+
+CMD [ "bash", "./dockerrun.sh" ]
