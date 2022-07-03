@@ -35,7 +35,7 @@ if [ "x$TARGET_DISTRO" != "x" ]
 then
     DISTRO=$TARGET_DISTRO
 else
-    DISTRO=$(awk -F"=" '$1=="ID"{print $2}' /etc/os-release | sed 's/\"//g')
+    DISTRO=$( sh getdistro.sh )
 fi
 
 STATUS=UNKNOWN
