@@ -42,6 +42,7 @@ The current list of supported OS's are
 * opensuse Thanks to @fridrich
 * opensuse-microos **EXPERIMENTAL**
 * [piCore](OS/piCore/README.md) Thank to @irkode
+* [Vanilla Debian](OS/debian/README.md) see link.
 
 If your OS isn't on this list it means that the installer isn't setup for your OS and it *may* or *may not* be able to install on your system. If your OS is based off one of these the is a strong chance it will *just* work.
 
