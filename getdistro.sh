@@ -10,7 +10,7 @@ check_distro() {
         *archarm*) distro='archarm';;
         *debian*) 
             RPI_KERNEL=$(dpkg --list | grep raspberrypi-kernel | cut -c 1-2)
-            [ "x$RPI_KERNEL" = "xii" ] && echo "rpios" || echo "debian"
+            [ "x$RPI_KERNEL" = "xii" ] && distro="rpios" || distro="debian"
             ;;
         *gentoo*) distro='gentoo';;
         *kali*) distro='kali';;
