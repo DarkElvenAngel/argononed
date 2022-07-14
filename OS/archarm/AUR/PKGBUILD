@@ -28,9 +28,8 @@ _BIN_DIR="${pkgname}/build"
 _COMMON_DIR="${pkgname}/OS/_common"
 
 pkgver() {
-	# If you mean this to get the Software version this is stored in the version file
 	cd "${srcdir}/${pkgname}"
-	printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+	printf "%s-%s-%s" "$(cat version)" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 prepare() {
