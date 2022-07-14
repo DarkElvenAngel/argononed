@@ -29,7 +29,7 @@ _COMMON_DIR="${pkgname}/OS/_common"
 
 pkgver() {
 	cd "${srcdir}/${pkgname}"
-	printf "%s-%s-%s" "$(cat version)" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+	printf "%s_%s_%s" "$(cat version)" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 prepare() {
