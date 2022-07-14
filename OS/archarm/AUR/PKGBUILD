@@ -60,7 +60,7 @@ build() {
 
 package() {
 	cd "${srcdir}/${pkgname}"
-	install -Dm755 "${srcdir}/${_BIN_DIR}/argononed" "${pkgdir}/usr/bin/argononed"
+	install -Dm755 "${srcdir}/${_BIN_DIR}/argononed" "${pkgdir}/usr/sbin/argononed"
 	install -Dm755 "${srcdir}/${_BIN_DIR}/argonone-cli" "${pkgdir}/usr/bin/argonone-cli"
 	install -Dm755 "${srcdir}/${_BIN_DIR}/argonone-shutdown" "${pkgdir}/usr/lib/systemd/system-shutdown/argonone-shutdown"
 	install -Dm644 "${srcdir}/${_COMMON_DIR}/argononed.service" "${pkgdir}/usr/lib/systemd/system/argononed.service"
