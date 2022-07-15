@@ -12,9 +12,9 @@ url="https://gitlab.com/DarkElvenAngel/argononed"
 license=('MIT')
 depends=('linux' 'dtc')
 optdepends=(
-      'bash-completion: CLI command completion in the BASH shell'
-			'systemd: Run daemon at system boot'
-			'logrotate: Automatic logs rotation'
+	'bash-completion: CLI command completion in the BASH shell'
+	'systemd: Run daemon at system boot'
+	'logrotate: Automatic logs rotation'
 )
 install=install
 makedepends=('git')
@@ -52,8 +52,8 @@ build() {
 				fi
 		done
 	fi
-	./configure 
-	# --prefix=/usr this is a customized script and doesn't accept parameters 
+	./configure
+	[[ -n $LOGLEVEL ]] && echo "LOGLEVEL=$LOGLEVEL" >> makefile.conf
 	make -j$(nproc) all
 }
 

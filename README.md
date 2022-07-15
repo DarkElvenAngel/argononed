@@ -40,7 +40,7 @@ The installer now requires you to run ```./configure``` before you run make. Thi
 * RetroPi
 * Gentoo
 * Manjaro-arm
-* Arch Linux arm (ARMv7 installation ONLY)
+* Arch Linux arm (ARMv7 installation ONLY) [aarch64/AUR](OS/archarm/README.md)
 * Ubuntu
 * OSMC
 * TwisterOS
