@@ -12,6 +12,10 @@ check_distro() {
             RPI_KERNEL=$(dpkg --list | grep raspberrypi-kernel | cut -c 1-2)
             [ "x$RPI_KERNEL" = "xii" ] && distro="rpios" || distro="debian"
             ;;
+        *fedora*)
+            VARIANT_ID="`(awk -F"=" '$1=="VARIANT_ID"{print $2}' /tmp/fedora.os-release | sed 's/\"//g')`"
+            [ "x$VARIANT_ID" = "x" ] && distro="${lower_case_string}-${VARIANT_ID}" || distro="fedora"
+            ;;
         *gentoo*) distro='gentoo';;
         *kali*) distro='kali';;
         *lakka*) distro='lakka';;
