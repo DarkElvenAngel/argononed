@@ -36,6 +36,9 @@ endif
 ifndef LOGROTATE
 LOGROTATE = 0
 endif
+ifndef PREFIX
+PREFIX = /usr
+endif
 ifdef DISABLE_POWER_BUTTON_SUPPORT
 CFLAGS += -DDISABLE_POWER_BUTTON_SUPPORT
 endif
@@ -128,7 +131,7 @@ ifndef OVERRIDE_INSTALL_DAEMON
 .PHONY: install-daemon
 install-daemon:
 	@echo -n "Installing daemon "
-	@$(INSTALL) build/$(BIN_DAEMON) /usr/sbin/$(BIN_DAEMON) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@$(INSTALL) build/$(BIN_DAEMON) $(PREFIX)/sbin/$(BIN_DAEMON) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
 ifeq ($(LOGROTATE),1)
 	@$(INSTALL) -m 600 OS/_common/argononed.logrotate /etc/logrotate.d/argononed
 endif
@@ -138,7 +141,7 @@ ifndef OVERRIDE_INSTALL_CLI
 .PHONY: install-cli
 install-cli:
 	@echo -n "Installing CLI "
-	@$(INSTALL) -m 0755 build/$(BIN_CLI) /usr/bin/$(BIN_CLI) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
+	@$(INSTALL) -m 0755 build/$(BIN_CLI) $(PREFIX)/bin/$(BIN_CLI) 2>/dev/null && echo "Successful" || { echo "Failed"; true; }
 ifeq ($(AUTOCOMP), 1)
 	@echo -n "Installing CLI autocomplete for bash "
 	@$(INSTALL) -m 755 OS/_common/argonone-cli-complete.bash /etc/bash_completion.d/argonone-cli 2>/dev/null && echo "Successful" || { echo "Failed"; true; }

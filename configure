@@ -104,6 +104,7 @@ echo "DISTRO=${DISTRO}" >> makefile.conf
 echo "BOOTLOC=${BOOTLOC}" >> makefile.conf
 echo "INITSYS=${INITSYS}" >> makefile.conf
 echo "I2CHELPER=${I2CHELPER}" >> makefile.conf
+[ "x$PREFIX" = "x" ] || echo "PREFIX=${PREFIX}" >> makefile.conf
 if [ $PACKAGESYS = 1 ]
 then
     echo "PACKAGESYS=ENABLED" >> makefile.conf
