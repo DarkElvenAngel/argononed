@@ -2,5 +2,5 @@ SERVICE_FILE=OS/fedora-iot/argononed.service
 
 install:: install-overlay
 ifeq ($(I2CHELPER), 1)
-	@$(BASH) OS/fedora-iot/i2-chelper.sh 2> /dev/null
+	@$(BASH) OS/fedora-iot/i2c-helper.sh 2> /dev/null
 endif
