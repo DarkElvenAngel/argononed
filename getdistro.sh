@@ -14,7 +14,7 @@ check_distro() {
             ;;
         *fedora*)
             VARIANT_ID="`(awk -F"=" '$1=="VARIANT_ID"{print $2}' /etc/os-release | sed 's/\"//g')`"
-            [ "x$VARIANT_ID" = "x" ] && distro="${lower_case_string}-${VARIANT_ID}" || distro="fedora"
+            [ "x$VARIANT_ID" = "x" ] && distro="fedora" || distro="${lower_case_string}-${VARIANT_ID}"
             ;;
         *gentoo*) distro='gentoo';;
         *kali*) distro='kali';;
