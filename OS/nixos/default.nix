@@ -96,6 +96,18 @@
       '';
     }];
 
-    services.logrotate.extraConfig = builtins.readFile "${arg1pk}/argononed.logrotate";
+    services.logrotate.settings.argononed = {
+      files = toString /var/log/argononed.log;
+      rotate = 2;
+      frequency = "daily";
+
+      create = "660 root root";
+
+      missingok = true;
+      notifempty = true;
+
+      compress = true;
+      delaycompress = true;
+    };
   };
 }
