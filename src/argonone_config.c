@@ -98,9 +98,22 @@ int Check_Configuration(struct DTBO_Data* conf, struct DTBO_Config src, int Full
         log_message(LOG_INFO + LOG_BOLD, "  Set flag USE_SYSFS as fallback!");
         conf->extra.flags.USE_SYSFS = 1;
     }
-    if (conf->extra.flags.USE_SYSFS && access("/sys/class/hwmon/hwmon0/temp1_input", R_OK) == -1)
-    {
-        log_message(LOG_CRITICAL, "Temperature sensor at /sys/class/hwmon/hwmon0/temp1_input inaccessible");
+    if (conf->extra.flags.USE_SYSFS) {
+        int failed_sensor = conf->extra.flags.SET_HWMON_NUM;
+        if (access("/sys/class/hwmon/hwmon0/temp1_input", R_OK) == -1 && conf->extra.flags.SET_HWMON_NUM == 0)
+        {
+            conf->extra.flags.SET_HWMON_NUM = 1;
+            failed_sensor++;
+            log_message(LOG_WARN, "Temperature sensor at /sys/class/hwmon/hwmon0/temp1_input inaccessible");
+        }
+        if (access("/sys/class/hwmon/hwmon1/temp1_input", R_OK) == -1 && conf->extra.flags.SET_HWMON_NUM == 1)
+        {
+            failed_sensor++;
+            log_message(LOG_WARN, "Temperature sensor at /sys/class/hwmon/hwmon1/temp1_input inaccessible");
+        }
+        if (failed_sensor >= 2) {
+            log_message(LOG_CRITICAL, "No Temperature sensors accessible");
+        }
     }
     if (!conf->extra.flags.PB_DISABLE && access("/dev/gpiochip0", W_OK + R_OK) == -1) {
         log_message(LOG_CRITICAL, "GPIO device /dev/gpiochip0 inaccessible");
