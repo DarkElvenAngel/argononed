@@ -6,7 +6,7 @@ OVERRIDE_INSTALL_OVERLAY=1
 install-overlay:
 	@echo -n "Installing overlay "
 	@$(INSTALL) build/argonone.dtbo $(BOOTLOC)/overlays/argonone.dtbo 2>/dev/null && echo "Successful" || { echo "Failed"; }
-	@$(BASH) OS/_common/setup-overlay.sh $(BOOTLOC)/extraconfig.txt
+	@$(BASH) OS/_common/setup-overlay.sh $(BOOTLOC)/config-user.txt
 ifeq ($(I2CHELPER), 1)
 	@$(BASH) OS/osmc/i2chelper.sh 2> /dev/null
 endif
