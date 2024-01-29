@@ -27,7 +27,7 @@ SOFTWARE.
 
 #include <stdint.h>
 
-#define DAEMON_VERSION "0.4.0"
+#define DAEMON_VERSION "0.5.0"
 
 #define RUNNING_DIR "/tmp"
 

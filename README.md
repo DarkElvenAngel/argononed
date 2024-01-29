@@ -6,13 +6,9 @@ A replacement daemon for the Argon One Raspberry Pi cases, and the Argon Artik F
 
 Not all features are working, present, and/or stable. Functions and instruction subject to change without notice.  Please check the compile code works before you install it.
 
-## What's new in 0.4.x
+## What's new in 0.5.x
 
-* More control: multiple ways to configure.
-* Full rewrite of the base code.
-* Support for Argon IR REMOTE.
-* More robust IPC support.
-* New cli tool `argonctl`
+* Support added for Pi 5
 
 ## Why make this?
 
