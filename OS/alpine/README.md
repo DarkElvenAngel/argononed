@@ -17,7 +17,7 @@ This product is unsupportable at this time.  There is no way known to detect a p
 
 ***This isn't a guild to setup ALPINE LINUX***  
 Setup the build environment install the required packages.  
-```apk install gcc dtc git argp-standalone bash build-base linux-headers```  
+```apk add gcc dtc git argp-standalone bash build-base linux-headers```  
 clone the repo and follow the build steps.
 
 ### Case hack

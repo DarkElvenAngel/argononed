@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2020 DarkElvenAngel
+Copyright (c) 2022 DarkElvenAngel
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,274 +21,149 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
 #include <stdio.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include <sys/types.h>
 #include <sys/ioctl.h>
-#include <linux/i2c-dev.h>
-#ifndef DISABLE_POWER_BUTTON_SUPPORT
 #include <linux/gpio.h>
-#endif
-#include <errno.h>
-#include <signal.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <dirent.h>
-#include <poll.h>
-#include <inttypes.h>
-#include <time.h>
-#include <ctype.h>
-#include "event_timer.h"
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
+#include "argononed.common.h"
 #include "identapi.h"
-#include "argononed.h"
+#include "event_timer.h"
+#include "argonone_shm.h"
 
-#define VERSION "0.3.4"
-#ifndef LOG_LEVEL
-#define LOG_LEVEL 5
-#endif
-
-
-// char* PI_PUD_STR[3] = {"OFF", "DOWN", "UP"};
-// char* PI_MODE_STR[8] = { "INPUT", "OUTPUT", "ALT5", "ALT4", "ALT0", "ALT1", "ALT2", "ALT3" };
-char* LOG_LEVEL_STR[6] = {"FATAL", "CRITICAL", "ERROR", "WARNING", "INFO",  "DEBUG"};
-
-uint8_t fanstage[4] = { 10 ,55, 100, 0 };
-uint8_t threshold[4] = { 55, 60, 65, 0 };
-uint8_t hysteresis = 3;
-uint32_t *gpioReg = MAP_FAILED;
-int  runstate = 0;
-struct SHM_Data* ptr = NULL;
-typedef enum {
-    LOG_NONE = 0,
-    LOG_FATAL,
-    LOG_CRITICAL,
-    LOG_ERROR,
-    LOG_WARN,
-    LOG_INFO,
-    LOG_DEBUG,
-} Log_Level;
-
+struct SHM_Data* ptr = NULL;            // Global Shared Memory Pointer
+Daemon_Conf Configuration = { 0 };      // Global Daemon Configuration
 
 void TMR_Get_temp(size_t timer_id, void *user_data);
 void Set_FanSpeed(uint8_t fan_speed);
-int reload_config_from_shm();
 
 /**
- * Write formatted output to Log file.
- * 
- * \param level Message's Log level
- * \param message formatted text to output
- * \return none
- */
-void log_message(Log_Level level, const char *message, ...)
-{
-    FILE *logfile;
-    va_list args;
-    if (ptr && (level <= LOG_WARN))
-    {
-        if (level == LOG_WARN) ptr->stat.EF_Warning++;
-        if (level == LOG_ERROR) ptr->stat.EF_Error++;
-        if (level == LOG_CRITICAL) ptr->stat.EF_Critical ++;
-    }
-#ifndef RUN_IN_FOREGROUND
-    logfile = fopen(LOG_FILE,"a");
-#else
-    logfile = stdout;
-#endif
-    if(!logfile) return;
-    if (level <= LOG_LEVEL )
-    {
-        time_t now;
-        time(&now);
-        char * date = ctime(&now);
-        date[strlen(date) - 1] = '\0';
-        fprintf(logfile,"%s [%s] ", date, LOG_LEVEL_STR[level - 1]);
-        va_start(args, message);
-        vfprintf(logfile, message, args);
-        va_end(args);
-        fprintf(logfile,"\n");
-    }
-#ifndef RUN_IN_FOREGROUND
-    fclose(logfile);
-#endif
-}
-
-/**
- * Prepare daemon for shutdown.
+ * \brief Prepare daemon for shutdown.
  * 
  * \return none
  */ 
-void cleanup()
+void Clean_Exit(int status)
 {
-    log_message(LOG_INFO, "Cleaning up");
-    TMR_Get_temp(0,"0");
+    log_message(LOG_INFO, "Begin Daemon Clean up");
+    uint8_t cmd = 1;
+    TMR_Get_temp(0,&cmd);
     Set_FanSpeed(0);
     Set_FanSpeed(0xFF);
-    close_timers();
-    shm_unlink(SHM_FILE);
-    unlink(LOCK_FILE);
-    log_message(LOG_INFO, "Ready for shutdown");
+    log_message(LOG_DEBUG,"  Clean_Exit close_timers()"); close_timers();
+    log_message(LOG_DEBUG,"  Clean_Exit shm_unlink(SHM_FILE) return %d",shm_unlink(SHM_FILE));
+    log_message(LOG_DEBUG,"  Clean_Exit unlink(LOCK_FILE) return %d", unlink(LOCK_FILE));
+    log_message(LOG_INFO, "Daemon ready for shutdown");
+    log_message(status == 0 ? LOG_INFO : LOG_ERROR + LOG_BOLD, "Daemon Exiting Status %d", status);
+    exit(status);
 }
 
 /**
- * Signal handler
+ * \brief Signal handler
+ * 
+ * \attention This function should not be called directly
  * 
  * \param sig Signal received 
  * \return none
  */ 
 void signal_handler(int sig){
     switch(sig){
-    case SIGHUP:
-        log_message(LOG_INFO,"Hangup Signal - RELOAD CONFIG");
-        reload_config_from_shm();
-        break;
-    case SIGTERM:
-        log_message(LOG_INFO,"Terminate Signal");
-        cleanup();
-        log_message(LOG_INFO,"Exiting");
-        exit(0);
-        break;
+        case SIGHUP:
+            log_message(LOG_INFO + LOG_BOLD,"Received SIGHUP Hang up");
+#ifndef DISABLE_LEGACY_IPC
+            reload_config_from_shm();
+#endif
+            break;
+        case SIGTERM:
+            log_message(LOG_INFO + LOG_BOLD,"Received SIGTERM Terminate");
+            Clean_Exit(0);
+            break;
+        case SIGINT:
+            log_message(LOG_INFO + LOG_BOLD,"Received SIGINT Interupt");
+            Clean_Exit(0);
+            break;
+        default:
+            log_message(LOG_INFO + LOG_BOLD,"Received Signal %s", strsignal(sig));
     }
 }
 
 /**
- * Read configuration
+ * \brief Alarm signal handler
  * 
- * \return none
+ * \attention This function shouldn't be called directly
+ *  
+ * \param sig ignored
  */
-void Read_config()
+void Alarm_handler(int sig __attribute__((unused)))
 {
-    FILE *fp = NULL;
-    uint32_t ret = 0;
-    struct DTBO_Config datain = {0};
-    log_message(LOG_INFO,"Reading values from device-tree");
-    fp = fopen("/proc/device-tree/argonone/argonone-cfg","rb");
-    if (fp == NULL)
-    {
-        log_message(LOG_WARN,"Unable to open device-tree data");
-    } else {
-        ret = fread(&datain,sizeof(struct DTBO_Config),1,fp);
-        if (ret <= 0)
-        {
-            log_message(LOG_ERROR,"Unable to read device-tree data");
-        } else {
-            if (datain.hysteresis <= 10) hysteresis = datain.hysteresis;
-            for (int i = 0; i < 3; i++)
-            {
-                if (i > 0)
-                {
-                    if (datain.fanstages[i] > datain.fanstages[i - 1])
-                        datain.fanstages[i] = fanstage[i] = datain.fanstages[i] <= 100 ? datain.fanstages[i] : fanstage[i];
-                    if (datain.thresholds[i] > datain.thresholds[i - 1])
-                        datain.thresholds[i] = threshold[i] = datain.thresholds[i] <= 80 ? datain.thresholds[i] : threshold[i];
-                } else {
-                    datain.fanstages[i] = fanstage[i] = datain.fanstages[i] <= 100 ? datain.fanstages[i] : fanstage[i];
-                    datain.thresholds[i] =threshold[i] = datain.thresholds[i] <= 80 ? datain.thresholds[i] : threshold[i];
-                }
-            }
-            log_message(LOG_INFO,"Hysteresis set to %d",hysteresis);
-            log_message(LOG_INFO,"Fan Speeds set to %d%% %d%% %d%%",fanstage[0],fanstage[1],fanstage[2]);
-            log_message(LOG_INFO,"Fan Temps set to %d %d %d",threshold[0],threshold[1],threshold[2]);
-        }
-        fclose(fp);
-    }
-}
-
-char* RUN_STATE_STR[4] = {"AUTO", "OFF", "MANUAL", "COOLDOWN"};
-/**
- * Reset Shared Memory to match correct values
- * 
- * \return none
- */
-void reset_shm()
-{
-    memcpy(ptr->config.fanstages, &fanstage, sizeof(fanstage));
-    memcpy(ptr->config.thresholds, &threshold, sizeof(threshold));
-    ptr->config.hysteresis = hysteresis;
-    ptr->fanmode = runstate;
+    log_message(LOG_DEBUG + LOG_BOLD,"Received Signal ALARM");
 }
 
 /**
- * Reload the configuration from shared memory
+ * \brief Send fan speed request to the argon micro controller
  * 
- * \return 0 on success
- */
-int reload_config_from_shm()
-{
-    for (int i = 0; i < 3; i++)
-    {
-        int lastval = 30;
-        if (ptr->config.thresholds[i] < lastval)
-        {
-            log_message(LOG_WARN,"Shared Memory contains bad value at threshold %d ABORTING reload", i);
-            reset_shm();
-            return -1;
-        }
-    }
-    for (int i = 0; i < 3; i++)
-    {
-        if (ptr->config.fanstages[i] > 100 )
-        {
-            log_message(LOG_WARN,"Shared Memory contains bad value at fanstage %d ABORTING reload", i);
-            reset_shm();
-            return -1;
-        }
-    }
-    memcpy(&fanstage, ptr->config.fanstages, sizeof(fanstage));
-    memcpy(&threshold, ptr->config.thresholds, sizeof(threshold));
-    if (ptr->config.hysteresis > 10)
-    {
-        log_message(LOG_WARN,"Shared Memory contains bad value at hysteresis FORCING to 10");
-        ptr->config.hysteresis = 10;
-    }
-    hysteresis = ptr->config.hysteresis;
-    if (ptr->fanmode > 3) 
-    {
-        log_message(LOG_WARN,"Shared Memory contains bad value at fanmode FORCING to AUTO");
-        ptr->fanmode = 0;
-    }
-    runstate = ptr->fanmode;
-    threshold[3] = ptr->temperature_target >= 30 ? ptr->temperature_target : 30;
-    fanstage[3]  = ptr->fanspeed_Overide <= 100 ? ptr->fanspeed_Overide : 0;
-    log_message(LOG_INFO,"Hysteresis set to %d",hysteresis);
-    log_message(LOG_INFO,"Fan Speeds set to %d%% %d%% %d%%",fanstage[0],fanstage[1],fanstage[2]);
-    log_message(LOG_INFO,"Fan Temps set to %d %d %d",threshold[0],threshold[1],threshold[2]);
-    log_message(LOG_INFO,"Fan Mode [ %s ] ", RUN_STATE_STR[runstate]);
-    log_message(LOG_INFO,"Fan Speed Override %3d ", fanstage[3]);
-    log_message(LOG_INFO,"Target Temperature %d ", threshold[3]);   
-    return 0;
-}
-
-/**
- * Set command to the argon one micro controller
+ * This function will attempt connect to the configured i2c bus.
+ * On the event of a bus error the connection is closed and reset
  * 
- * \param fan_speed 0-100 to set fanspeed or 0xFF to close I2C interface
+ * \attention THERE IS NO ERROR FEEDBACK
+ * 
+ * \todo Add Error feedback and i2c bus scanning
+ * 
+ * \param[in] fan_speed 0-100 to set fanspeed or 0xFF to close I2C interface
  * \return none
  */
 void Set_FanSpeed(uint8_t fan_speed)
 {
-    static int file_i2c = 0;
-    static uint8_t speed = 1;
+    static int file_i2c = 0;        // i2c file descripter
+    static uint8_t speed = 1;       // Current fan speed 
+    unsigned long functions = 0;
 	if (file_i2c == 0)
     {
-        char *filename = (char*)"/dev/i2c-1";
+        char filename[14]; // = (char*)"/dev/i2c-1  ";
+        snprintf(filename,14,"/dev/i2c-%d", Configuration.extra.bus);
+        log_message(LOG_INFO,"Attempt to open the i2c bus at %s", filename);
         if ((file_i2c = open(filename, O_RDWR)) < 0)
         {
             log_message(LOG_CRITICAL,"Failed to open the i2c bus");
+            file_i2c = 0;  // Reset to zero this will allow the daemon to retry the connection
             return;
+        }
+        if (ioctl(file_i2c, I2C_FUNCS, &functions) < 0) {
+            log_message(LOG_WARN, "Could not get the adapter functionality matrix: %s", strerror(errno));
         }
         int addr = 0x1a;
         if (ioctl(file_i2c, I2C_SLAVE, addr) < 0)
         {
-            log_message(LOG_CRITICAL,"Failed to acquire bus access and/or talk to slave.");
+            if (errno == EBUSY) log_message(LOG_WARN, "Device address is busy");
+            else log_message(LOG_CRITICAL,"Failed to acquire bus access");
+            close(file_i2c);
+            file_i2c = 0; // Reset so the i2c can reconnect if needed
             return;
+        }
+        if ((functions & I2C_FUNC_SMBUS_QUICK))
+        {
+            struct i2c_smbus_ioctl_data args;
+            args.read_write = I2C_SMBUS_WRITE;
+            args.command = 0;
+            args.size = 0;
+            args.data = NULL;
+
+            if (ioctl(file_i2c, I2C_SMBUS, &args) < 0)
+            {
+                log_message(LOG_WARN, "Unable to detect Argon fan controller");
+                close(file_i2c);
+                file_i2c = 0; // Reset so the i2c can reconnect on a different bus if requested
+                return;
+            }
+            else
+                log_message(LOG_DEBUG, "Argon fan controller found");
         }
         log_message(LOG_INFO,"I2C Initialized");
     }
@@ -304,93 +179,27 @@ void Set_FanSpeed(uint8_t fan_speed)
     } else if (fan_speed == 0xFF)
     {
         close(file_i2c);
-        log_message(LOG_INFO,"I2C Closed");
+        file_i2c = 0; // Reset so the i2c can reconnect if needed
+        log_message(LOG_INFO,"i2c closed");
     }
 }
 /**
- * Reset Shared Memory
+ * \brief Read the CPU temperature
  * 
- * \note This is meant to be called with a Timer.
- * \param timer_id calling timer id
- * \param user_data pointer to argument data
- * \return none
- */
-void TMR_SHM_Reset(size_t timer_id, void *user_data __attribute__((unused)))
-{
-    log_message(LOG_DEBUG,"SHM reset error flag");
-    reset_shm();
-    ptr->status = REQ_WAIT;
-    stop_timer(timer_id);
-    *(size_t*)user_data = 0;
-}
-/**
- * Monitor Shared Memory for commands
+ * Fetch the CPU temperature, this will use the configured interface
+ * if the temperature cannot be read then return -1 and do not update
+ * CPU_Temp
  * 
- * \note This is meant to be called with a Timer.
- * \param timer_id calling timer id
- * \param user_data pointer to argument data
- * \return none
+ * \param[OUT] CPU_Temperature* pointer to hold CPU temperature
+ * \param[IN] command 0 get temperature, 1 close fd if open
+ * \return 0 if CPU_Temp is valid 
  */
-void TMR_SHM_Interface(size_t timer_id __attribute__((unused)), void *user_data __attribute__((unused)))
+int Get_CPU_Temp(uint32_t *CPU_Temperature, uint8_t command)
 {
-    static size_t timer_rst = 0;
-    static uint8_t last_state = 0;
-    if (ptr->status == REQ_ERR && timer_rst == 0)
-    {
-        log_message(LOG_DEBUG,"SHM Start timer to reset error flag");
-        timer_rst = start_timer_long(1, TMR_SHM_Reset, TIMER_SINGLE_SHOT, &timer_rst);
-        return;
-    }
-    if (ptr->status != REQ_WAIT)
-        switch (ptr->status)
-        {
-            case REQ_ERR: // Last command was error wait for reset
-                break;
-            case REQ_RDY: // A shared memory command is ready for processing
-                ptr->status = REQ_PEND;
-                log_message (LOG_INFO, "Request reload of config from shared memory");
-                if (reload_config_from_shm() == 0)
-                {
-                    ptr->status = REQ_WAIT;
-                    return;
-                }
-                ptr->status = REQ_ERR;
-                break;
-            case REQ_CLR: // The request area and reset shared memory
-                reset_shm();
-                ptr->status = REQ_WAIT;
-                return;
-            default:
-                if (last_state == ptr->status) return;
-                last_state = ptr->status;
-                log_message (LOG_DEBUG, "SHM Unknown Status %20X", ptr->status);
-        }
-}
-
-/**
- * Read temperature and process temperature data
- * 
- * \note This is meant to be called with a Timer.
- * \param timer_id calling timer id
- * \param user_data pointer to argument data
- * \return none
- */
-void TMR_Get_temp(size_t timer_id, void *user_data)
-{
-    int32_t CPU_Temp = 0;
-	static uint8_t fanspeed = 0;
-#ifdef USE_SYSFS_TEMP
-#define DTOSTRING(s) xstr(s)
-#define xstr(s) #s
-    FILE* fptemp = 0;
-    fptemp = fopen(DTOSTRING(USE_SYSFS_TEMP), "r");
-    fscanf(fptemp, "%d", &CPU_Temp);
-    fclose(fptemp);
-    CPU_Temp = CPU_Temp / 1000;
-#undef xstr 
-#undef DTOSTRING
-#else 
+    uint32_t CPU_Temp = 0;
     static int32_t fdtemp = 0;
+    int return_val = 0;
+    FILE* fptemp = 0;
     uint32_t property[10] =
     {
         0x00000000,
@@ -404,86 +213,197 @@ void TMR_Get_temp(size_t timer_id, void *user_data)
         0x00000000,
         0x00000000
     };
-    property[0] = 10 * sizeof(property[0]);
-    if (user_data == NULL)
+    if (Configuration.extra.flags.USE_SYSFS)
     {
-        if (fdtemp == 0)
+        char filename[36];
+        snprintf(filename,36,"/sys/class/hwmon/hwmon%d/temp1_input", Configuration.extra.flags.SET_HWMON_NUM);
+        log_message(LOG_DEBUG,"Open %s for temperature ",filename);
+        fptemp = fopen(filename, "r");
+        if (fptemp)
         {
-            fdtemp = open("/dev/vcio", 0);
-            if (fdtemp == -1)
-            {
-                log_message(LOG_CRITICAL, "Cannot get VideoCore I/O!");
-                stop_timer(timer_id);
-                log_message(LOG_CRITICAL, "Temperature can not be monitored!!");
-            } else {
-                log_message(LOG_INFO, "Successfully opened /dev/vcio for temperature sensor");
-            }
+            fscanf(fptemp, "%d", &CPU_Temp);
+            fclose(fptemp);
+        } else {
+            return_val = -1;
+            log_message(LOG_CRITICAL, "Temperature can not be monitored!!");
         }
-        if (ioctl(fdtemp, _IOWR(100, 0, char *), property) == -1)
+        CPU_Temp = CPU_Temp / 1000;
+    } else {
+        property[0] = 10 * sizeof(property[0]);
+        if (command == 0)
         {
-            log_message(LOG_CRITICAL, "Cannot get CPU Temp!");
+            if (fdtemp == 0)
+            {
+                fdtemp = open("/dev/vcio", 0);
+                if (fdtemp == -1)
+                {
+                    log_message(LOG_CRITICAL, "Cannot access VideoCore I/O!");
+                    return_val = -1;
+                    log_message(LOG_CRITICAL, "Temperature can not be monitored!!");
+                }
+            }
+            if (ioctl(fdtemp, _IOWR(100, 0, char *), property) == -1)
+            {
+                log_message(LOG_CRITICAL, "Cannot get CPU Temp!");
+                return_val = -1;
+                log_message(LOG_CRITICAL, "Temperature can not be monitored!!");
+            }
+        CPU_Temp = property[6] / 1000;
+        } else {
+            close(fdtemp);
+            log_message(LOG_INFO, "Successfully closed temperature sensor");
+        }
+    }
+    if (return_val != 0)
+    {
+        close(fdtemp);
+        fdtemp = 0;
+    } else *CPU_Temperature = CPU_Temp;
+    return return_val;
+}
+
+/**
+ * \brief Read temperature and process temperature data
+ * 
+ * \note This is meant to be called with a Timer.
+ * \bug  If the temperature cannot be monitored then fan control isn't possible.
+ * \param timer_id calling timer id
+ * \param user_data pointer to argument data
+ * \return none
+ */
+void TMR_Get_temp(size_t timer_id, void *user_data)
+{
+    uint32_t CPU_Temp = 0;
+	static uint8_t fanspeed = 0;
+    static uint8_t temp_error = 0;
+    uint8_t command = (user_data == NULL ? 0 :*(uint8_t*)user_data);
+#if 0
+    static int32_t fdtemp = 0;
+    FILE* fptemp = 0;
+    uint32_t property[10] =
+    {
+        0x00000000,
+        0x00000000,
+        0x00030006,
+        0x00000008,
+        0x00000004,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000
+    };
+    if (Configuration.extra.flags.USE_SYSFS)
+    {
+        char filename[36];
+        snprintf(filename,36,"/sys/class/hwmon/hwmon%d/temp1_input", Configuration.extra.flags.SET_HWMON_NUM);
+        log_message(LOG_DEBUG,"Open %s for temperature ",filename);
+        fptemp = fopen(filename, "r");
+        if (fptemp)
+        {
+            fscanf(fptemp, "%d", &CPU_Temp);
+            fclose(fptemp);
+        } else {
             stop_timer(timer_id);
             log_message(LOG_CRITICAL, "Temperature can not be monitored!!");
         }
-        CPU_Temp = property[6] / 1000;
+        CPU_Temp = CPU_Temp / 1000;
+    } else {
+        property[0] = 10 * sizeof(property[0]);
+        if (user_data == NULL)
+        {
+            if (fdtemp == 0)
+            {
+                fdtemp = open("/dev/vcio", 0);
+                if (fdtemp == -1)
+                {
+                    log_message(LOG_CRITICAL, "Cannot access VideoCore I/O!");
+                    stop_timer(timer_id);
+                    log_message(LOG_CRITICAL, "Temperature can not be monitored!!");
+                } else { // this will flood the logs!
+                    // log_message(LOG_INFO, "Successfully opened /dev/vcio for temperature sensor");
+                }
+            }
+            if (ioctl(fdtemp, _IOWR(100, 0, char *), property) == -1)
+            {
+                log_message(LOG_CRITICAL, "Cannot get CPU Temp!");
+                stop_timer(timer_id);
+                log_message(LOG_CRITICAL, "Temperature can not be monitored!!");
+            }
+            CPU_Temp = property[6] / 1000;
+        } else {
+            close(fdtemp);
+            log_message(LOG_INFO, "Successfully closed temperature sensor");
+            return;
+        }
+    } 
 #endif
-    switch (runstate)
+    switch (command)
+    {
+        case 0:
+            if (temp_error == 0)
+                if (Get_CPU_Temp(&CPU_Temp, 0) != 0)
+                {
+                    temp_error = 1;
+                    return;
+                }
+            break;
+        default:
+            Get_CPU_Temp(&CPU_Temp, command);
+    }
+
+    #if 1 // SKIP FAN SWITCHING
+    switch (Configuration.runstate)
     {
         case 0: //AUTO
         switch (fanspeed)
         {
             case 0:
-            if (CPU_Temp >= threshold[0]) fanspeed = 1;
+            if (CPU_Temp >= Configuration.configuration.thresholds[0]) fanspeed = 1;
             Set_FanSpeed(0);
             break;
             case 1:
-            if (CPU_Temp >= threshold[1]) fanspeed = 2;
-            if (CPU_Temp <= threshold[0] - hysteresis) fanspeed = 0;
-            Set_FanSpeed(fanstage[0]);
+            if (CPU_Temp >= Configuration.configuration.thresholds[1]) fanspeed = 2;
+            if (CPU_Temp <= (uint8_t)(Configuration.configuration.thresholds[0] - Configuration.configuration.hysteresis)) fanspeed = 0;
+            Set_FanSpeed(Configuration.configuration.fanstages[0]);
             break;
             case 2:
-            if (CPU_Temp >= threshold[2]) fanspeed = 3;
-            if (CPU_Temp <= threshold[1] - hysteresis) fanspeed = 1;
-            Set_FanSpeed(fanstage[1]);
+            if (CPU_Temp >= Configuration.configuration.thresholds[2]) fanspeed = 3;
+            if (CPU_Temp <= (uint8_t)(Configuration.configuration.thresholds[1] - Configuration.configuration.hysteresis)) fanspeed = 1;
+            Set_FanSpeed(Configuration.configuration.fanstages[1]);
             break;
             case 3:
-            if (CPU_Temp <= threshold[2] - hysteresis) fanspeed = 2;
-            Set_FanSpeed(fanstage[2]);
+            if (CPU_Temp <= (uint8_t)(Configuration.configuration.thresholds[2] - Configuration.configuration.hysteresis)) fanspeed = 2;
+            Set_FanSpeed(Configuration.configuration.fanstages[2]);
             break;
         }
         break;
         case 1: Set_FanSpeed(0); break; // OFF
         case 2: // MANUAL OVERRIDE
-        Set_FanSpeed(fanstage[3]);
+        Set_FanSpeed(Configuration.fanspeed_Overide);
         break;
         case 3: // COOLDOWN
-        if (CPU_Temp <= threshold[3])
+        if (CPU_Temp <= Configuration.temperature_target)
         {
             log_message(LOG_INFO, "Cool down complete. switch to AUTO mode"); 
             Set_FanSpeed(0);
-            runstate = 0;
+            Configuration.runstate = 0;
             ptr->fanmode = 0;
         } else {
-            Set_FanSpeed(fanstage[3]);
+            Set_FanSpeed(Configuration.fanspeed_Overide);
         }
         break;
     }
-    ptr->temperature = CPU_Temp;
-    if (CPU_Temp > ptr->stat.max_temperature) ptr->stat.max_temperature = CPU_Temp;
-    if ( (ptr->stat.min_temperature == 0) || (CPU_Temp < ptr->stat.min_temperature)) ptr->stat.min_temperature = CPU_Temp;
-#ifndef USE_SYSFS_TEMP
-    } else {
-        close(fdtemp);
-        log_message(LOG_INFO, "Successfully closed temperature sensor");
-    }
-#endif
+    #endif
+    ptr->temperature = (uint8_t)CPU_Temp;
+    if (CPU_Temp > ptr->stat.max_temperature) ptr->stat.max_temperature = (uint8_t)CPU_Temp;
+    if ( (ptr->stat.min_temperature == 0) || (CPU_Temp < ptr->stat.min_temperature)) ptr->stat.min_temperature = (uint8_t)CPU_Temp;
 }
-#ifndef DISABLE_POWER_BUTTON_SUPPORT 
 /**
- * This Function is used to watch for the power button events.
+ * \brief This Function is used to watch for the power button events.
  * 
  * \note Call is Blocking
- * \param Pulse_Time_ms pointer used to hold the pulse time in ms 
+ * \param[out] Pulse_Time_ms pointer used to hold the pulse time in ms 
  * \return 0 when Pule_Time_ms is valid or error code
  */
 int32_t monitor_device(uint32_t *Pulse_Time_ms)
@@ -492,7 +412,7 @@ int32_t monitor_device(uint32_t *Pulse_Time_ms)
 	struct gpioevent_request req;
 	int fd;
 	int ret = 0;
-    if (E_Flag == -1) { // E_Flag -1 disable attempts to open /dev/gpiochip0 
+    if (E_Flag == -1 || Configuration.extra.flags.PB_DISABLE) { // E_Flag -1 disable attempts to open /dev/gpiochip0 
         while (1) {
             usleep(10000);
         }
@@ -557,63 +477,68 @@ int32_t monitor_device(uint32_t *Pulse_Time_ms)
 		}
 		if (event.id == GPIOEVENT_EVENT_RISING_EDGE)
         {
-        	Rtime = event.timestamp / 1000000;
+            log_message(LOG_DEBUG, "GPIOEVENT_EVENT_RISING_EDGE @ %d",event.timestamp / 1000000);
+        	Rtime = (uint32_t)(event.timestamp / 1000000);
         }
 		if (event.id == GPIOEVENT_EVENT_FALLING_EDGE)
         {
+            log_message(LOG_DEBUG, "GPIOEVENT_EVENT_FALLING_EDGE @ %d",event.timestamp / 1000000);
             if ( ((event.timestamp / 1000000) - Rtime) > 0 )
             {
-                *Pulse_Time_ms = (event.timestamp / 1000000) - Rtime;
+                *Pulse_Time_ms = (uint32_t)(event.timestamp / 1000000) - Rtime;
                 ret = 0;
                 break;
             }
+            log_message(LOG_ERROR, "Negative pulse time");
             // negative pulse time is invalid and should be ignored
-            // TODO: Delect under cause and report
+            // TODO: Detect underlining cause and report
 		}
 	}
 exit_close_error:
-    if (ret != 0) log_message(LOG_DEBUG, "FUNC [monitor_device] Exit with error %d : %s", ret, strerror(ret));
+    // This will flood the log with useless information.
+    // if (ret != 0) log_message(LOG_DEBUG, "FUNC [monitor_device] Exit with error %d : %s", ret, strerror(ret));
 	close(fd);
+	close(req.fd); // FIXES file descripter leak
 	return ret;
 }
-#endif
 /**
- * Fork into a daemon
+ * \brief Fork into a daemon
  * \note only call once
+ * 
+ * \param *conf Current configuration
  * 
  * \return none
  */
-void daemonize(){
+int daemonize(struct DTBO_Data *conf){
     int lfp;
     char str[10];
-//  This is causing problems with systemd seems to be okay without
-//    if(getppid() == 1)
-//        return;
-#ifndef RUN_IN_FOREGROUND
-    int i = fork();
-    if(i < 0)
-        exit(1);
-    if(i > 0)
-        exit(0);
-    setsid();
-    for(i = getdtablesize(); i >= 0; --i)
-        close(i);
-    i = open("/dev/null",O_RDWR);
-    dup(i);
-    dup(i);
-#endif
+    if (!conf->extra.flags.FOREGROUND_MODE)
+    {
+        int i = fork();
+        if(i < 0)
+            exit(1);
+        if(i > 0)
+            exit(0);
+        setsid();
+        for(i = getdtablesize(); i >= 0; --i)
+            close(i);
+        i = open("/dev/null",O_RDWR);
+        dup(i);
+        dup(i);
+        log_message(LOG_INFO,"Now running as a daemon");
+    }
     umask(0);
     chdir(RUNNING_DIR);
     lfp = open(LOCK_FILE,O_RDWR|O_CREAT,0640);
     if(lfp < 0)
     {
         log_message(LOG_FATAL,"Lock file can't be created");
-        exit(1);
+        return 1;
     }
     if(lockf(lfp,F_TLOCK,0) < 0)
     {
         log_message(LOG_FATAL,"Lock file cannot be locked");
-        exit(1);
+        return 1;
     }
     sprintf(str,"%d\n",getpid());
     if (write(lfp,str,strlen(str)) > 0) 
@@ -621,116 +546,60 @@ void daemonize(){
         log_message(LOG_INFO,"Lock file created");
     } else {
         log_message(LOG_FATAL,"cannot write to lock file");
+        return 1;
     }
     close(lfp);
     signal(SIGCHLD,SIG_IGN);
     signal(SIGTSTP,SIG_IGN);
     signal(SIGTTOU,SIG_IGN);
     signal(SIGTTIN,SIG_IGN);
+    signal(SIGPIPE,SIG_IGN);
+    signal(SIGALRM,Alarm_handler);
+    signal(SIGCHLD,signal_handler);
+    signal(SIGUSR1,signal_handler);
+    signal(SIGUSR2,signal_handler);
+    signal(SIGURG,signal_handler);
     signal(SIGHUP,signal_handler);
+    signal(SIGINT,signal_handler);
     signal(SIGTERM,signal_handler);
-}
-/* The following code is no longer required
- * device overlay version 0.1.0 removes the
- * requirement for /dev/gpiomem
-*/
-#if 0
-/**
- * Set GPIO pin mode
- * 
- * \param gpio GPIO pin to set
- * \param mode mode 
- * \return none
- */
-void gpioSetMode(unsigned gpio, unsigned mode)
-{
-   int reg, shift;
-   log_message(LOG_INFO,"Set GPIO %d to mode %s", gpio, PI_MODE_STR[mode]);
-   reg   =  gpio/10;
-   shift = (gpio%10) * 3;
-   gpioReg[reg] = (gpioReg[reg] & ~(7<<shift)) | (mode<<shift);
-}
-/**
- * Set GPIO pin mode
- * 
- * \param gpio GPIO pin to set
- * \param pud Pull up or down 
- * \return none
- */
-void gpioSetPullUpDown(unsigned gpio, unsigned pud)
-{
-   *(gpioReg + GPPUD) = pud;
-   usleep(50);
-   *(gpioReg + GPPUDCLK0 + (gpio>>5)) = 1<<(gpio&0x1F);
-   usleep(50);
-   *(gpioReg + GPPUD) = 0;
-   *(gpioReg + GPPUDCLK0 + (gpio>>5)) = 0;
-   log_message(LOG_INFO,"Set GPIO %d pull up/down to %s", gpio, PI_PUD_STR[pud]);
+    return 0;
 }
 
-/**
- * Initialize GPIO memory mapping
- * 
- * \return 0 for success otherwise -1 error
- */
-int gpioInitialize(void)
-{
-   int fd;
-   fd = open("/dev/gpiomem", O_RDWR | O_SYNC) ;
-   if (fd < 0)
-   {
-        log_message(LOG_FATAL, "failed to open /dev/gpiomem\n");
-        return -1;
-   }
-   gpioReg = (uint32_t *)mmap(NULL, 0xB4, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-   close(fd);
-   if (gpioReg == MAP_FAILED)
-   {
-        log_message(LOG_FATAL, "Bad, mmap failed\n");
-        return -1;
-   }
-   return 0;
-}
-#endif
 int main(int argc,char **argv)
 {
-    argc = argc;    // surpress unused variable warning
-    argv = argv;    // surpress unused variable warning
+    Init_Configuration(&Configuration);
+    struct DTBO_Data Arguments = { 0 };
+    Parse_Command_Line_Arguments(argc, argv, &Arguments, &Configuration);
+    Configuration.extra.flags.value = Arguments.extra.flags.value;
+    Configuration.Log_Level = Arguments.Log_Level;
+    Configuration.colour = Arguments.colour;
+#if 1 // bypass privilege user checks
     // Check we are running as root
     if (getuid() != 0) {
-        fprintf(stderr, "ERROR: Permissions error, must be run as root\n");
+        fprintf(stderr, "ERROR:  Permissions error, must be run as root\n");
         exit(1);
     }
     // check for unclean exit
     if (access(LOCK_FILE, F_OK) != -1)
     {
+        fprintf(stderr, "WARNING:  argononed Lock file found\n");
         FILE* file = fopen (LOCK_FILE, "r");
         int d_pid = 0;
         fscanf (file, "%d", &d_pid);
         fclose (file);
         if (kill(d_pid, 0) == 0)
         {
-          fprintf(stderr, "argononed ALREADY RUNNING\n");
+          fprintf(stderr, "ERROR:  argononed ALREADY RUNNING\n");
           exit (1);
         }
-        log_message(LOG_WARN, "Unclean exit detected");
+        log_message(LOG_WARN + LOG_BOLD, "Unclean exit detected");
         unlink (LOCK_FILE);
         shm_unlink(SHM_FILE);
         log_message(LOG_INFO, "Clean up complete");
     }
-    log_message(LOG_INFO,"Startup ArgonOne Daemon ver %s", VERSION);
-    log_message(LOG_INFO,"Loading Configuration");
-    Read_config();
-#ifndef DISABLE_POWER_BUTTON_SUPPORT 
-    //if (gpioInitialize() < 0)
-    //{
-    //    log_message(LOG_FATAL,"GPIO initialization failed");
-    //    return 1;
-    //}
-    log_message(LOG_INFO,"GPIO initialized");
-#else
-    log_message(LOG_INFO,"GPIO Disabled");
 #endif
+    log_message(LOG_INFO,"Startup ArgonOne Daemon version %s", DAEMON_VERSION);
+    log_message(LOG_INFO + LOG_BOLD,"Checking Board Revision");
     struct identapi_struct Pirev;
     Pirev.RAW = IDENTAPI_GET_Revision();
     if (Pirev.RAW == 1)
@@ -739,66 +608,78 @@ int main(int argc,char **argv)
         //return 1;
     } else {
 
-        float frev = 1.0 + (Pirev.REVISION / 10.0);
+        float frev = 1.0f + (Pirev.REVISION / 10.0f);
         char memstr[11];
         if (IDENTAPI_GET_int(Pirev, IDENTAPI_MEM) > 512) sprintf(memstr,"%dGB",IDENTAPI_GET_int(Pirev, IDENTAPI_MEM) / 1024);
         else sprintf(memstr,"%dMB",IDENTAPI_GET_int(Pirev, IDENTAPI_MEM));
-        log_message(LOG_INFO, "RPI MODEL %s %s rev %1.1f", IDENTAPI_GET_str(Pirev, IDENTAPI_TYPE), memstr, frev);
+        log_message(LOG_INFO, "Detected RPI MODEL %s %s rev %1.1f", IDENTAPI_GET_str(Pirev, IDENTAPI_TYPE), memstr, frev);
     }
-    daemonize();
-    initialize_timers();
-    log_message(LOG_INFO,"Now running as a daemon");
-    size_t timer1 __attribute__((unused)) = start_timer_long(2, TMR_Get_temp,TIMER_PERIODIC,NULL);
-    size_t timer2 __attribute__((unused)) = start_timer(100,TMR_SHM_Interface,TIMER_PERIODIC,NULL);
-    log_message(LOG_INFO, "Begin Initalizing shared memory");
-	int shm_fd =  shm_open(SHM_FILE, O_CREAT | O_RDWR, 0666);
+    umask(0);
+    log_message(LOG_INFO + LOG_BOLD, "Begin Initalizing shared memory");
+	int shm_fd = shm_open(SHM_FILE, O_CREAT | O_RDWR, 0666);
 	ftruncate(shm_fd, SHM_SIZE);
     ptr = mmap(0, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 	if (ptr == MAP_FAILED) {
 		log_message(LOG_FATAL, "Shared memory map error");
-		return 1;
+		Clean_Exit(1);
 	}
-    Set_FanSpeed(0);
-    memcpy(ptr->config.fanstages, &fanstage, sizeof(fanstage));
-    memcpy(ptr->config.thresholds, &threshold, sizeof(threshold));
-    ptr->config.hysteresis = hysteresis;
-#ifndef DISABLE_POWER_BUTTON_SUPPORT
-    // gpioSetMode(4, PI_INPUT);
-    // gpioSetPullUpDown(4, PI_PUD_DOWN);
-    log_message(LOG_INFO,"Now waiting for button press");
-    uint32_t count = 0;
-    do
+    log_message(LOG_INFO + LOG_BOLD,"Shared memory initialized");
+    log_message(LOG_INFO + LOG_BOLD,"Loading Configurations");
+    int ret = Read_DeviceTree_Data(&Configuration);
+    log_message(LOG_DEBUG,"Read_DeviceTree_Data return %d", ret);
+    if (Arguments.filename)
+        ret = Read_Configuration_File(Arguments.filename, &Configuration);
+    else
+        ret = Read_Configuration_File("/etc/argononed.conf", &Configuration);
+    log_message(LOG_DEBUG,"Read_Configuration_File return %d", ret);
+    Check_Configuration(&Configuration,Arguments.configuration, 1);
+
+    log_message(LOG_INFO + LOG_BOLD,"Configuration Complete");
+    Configuration_log(&Configuration);
+    if (daemonize(&Configuration) != 0) {
+        Clean_Exit(1);
+        log_message(LOG_ERROR + LOG_BOLD,"Daemon Exiting Status 1");
+        exit(1);
+    }
+    initialize_timers();
+    argonon_shm_start();
+    size_t timer1 __attribute__((unused)) = start_timer_long(2, TMR_Get_temp,TIMER_PERIODIC,NULL);
+
+    log_message(LOG_INFO + LOG_BOLD,"Enter Main loop");
+    if (!Configuration.extra.flags.PB_DISABLE)
     {
-        if (monitor_device(&count) == 0)
+        log_message(LOG_INFO + LOG_BOLD,"Now waiting for button press");
+        uint32_t count = 0;
+        do
         {
-            log_message(LOG_DEBUG, "Pulse received %dms", count);
-            if ((count >= 19 && count <= 21) || (count >= 39 && count <= 41)) break;
-            // else log_message(LOG_ERROR, "Unrecognized pulse width received [%dms]", count); This ERROR only floods the logs and isn't helpful
+            if (monitor_device(&count) == 0)
+            {
+                log_message(LOG_DEBUG, "Pulse received %dms", count);
+                if ((count >= 19 && count <= 21) || (count >= 39 && count <= 41)) break;
+                sleep(1);
+            }
+            // monitor_device has produced and error
+            usleep(10000);  // Shouldn't be reached but prevent overloading CPU
+        } while (1);
+        if (count >= 19 && count <= 21)
+        {
+            log_message(LOG_DEBUG, "EXEC REBOOT");
+            sync();
+            system("/sbin/reboot");
         }
-        // monitor_device has produced and error
-        usleep(10000);  // Shouldn't be reached but prevent overloading CPU
-    } while (1);
-    cleanup();
-    if (count >= 19 && count <= 21)
-    {
-        log_message(LOG_DEBUG, "EXEC REBOOT");
-        sync();
-        system("/sbin/reboot");
+        if (count >= 39 && count <= 41)
+        {
+            log_message(LOG_DEBUG, "EXEC SHUTDOWN");
+            sync();
+            system("/sbin/poweroff");
+        }
+    } else {
+        log_message(LOG_INFO + LOG_BOLD,"Daemon Ready");
+        for(;;)
+        {
+            sleep(1); // Main loop to sleep 
+        }
     }
-    if (count >= 39 && count <= 41)
-    {
-        log_message(LOG_DEBUG, "EXEC SHUTDOWN");
-        sync();
-        system("/sbin/poweroff");
-    }
-#else
-    log_message(LOG_INFO,"Daemon Ready");
-    for(;;)
-    {
-        sleep(1); // Main loop to sleep 
-    }
-    cleanup();
-#endif
-    log_message(LOG_INFO,"Daemon Exiting");
-    return 0;
+
+    Clean_Exit(0);
 }

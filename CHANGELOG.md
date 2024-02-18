@@ -1,5 +1,14 @@
 # Change Log
 
+0.4.0
+
+* Complete overhaul of base code
+* Added Configuration file support
+* Added Command Line arguments
+* Deprecated argonone-cli
+* Added Argon IR REMOTE support
+* Added Error Flags to SHM_Stats
+
 0.3.4
 
 * Upgrade device-tree overlay to version 0.1.0

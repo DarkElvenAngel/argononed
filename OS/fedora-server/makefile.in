@@ -1,0 +1,8 @@
+install:: install-daemon
+	@echo -n "Installing argononed.conf "
+	@$(INSTALL) -m 0644 OS/$(DISTRO)/argononed.conf /etc/argononed.conf 2>/dev/null && echo "Successful" || { echo "Failed"; }
+
+install:: install-overlay
+ifeq ($(I2CHELPER), 1)
+	@$(BASH) OS/$(DISTRO)/i2c-helper.sh 2> /dev/null
+endif

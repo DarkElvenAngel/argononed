@@ -3,31 +3,31 @@
 /plugin/;
 
 / {
-	compatible = "brcm,bcm2708";
+    compatible = "brcm,bcm2708";
 
-	fragment@0 {
-		target-path = "/";
-		__overlay__ {
-			argonone: argonone {
-				label        = "argonone";
-				argonone-cfg = /bits/ 8 <10 55 100 55 60 65 3>;
-				argonone-ver = [00 01 00];
-				argonone-conf = "/etc/argononed.conf";
-				argonone-extra = [01 00];
-			};
-		};
-	};
+    fragment@0 {
+        target-path = "/";
+        __overlay__ {
+            argonone: argonone {
+                label        = "argonone";
+                argonone-cfg = /bits/ 8 <10 55 100 55 60 65 3>;
+                argonone-ver = [00 01 00];
+                argonone-conf = "/etc/argononed.conf";
+                argonone-extra = [01 00];
+            };
+        };
+    };
 
-	fragment@1 {
-		target = <&i2c_arm>;
-		__overlay__ {
-			status = "okay";
-		};
-	};
+    fragment@1 {
+        target = <&i2c_arm>;
+        __overlay__ {
+            status = "okay";
+        };
+    };
 
-	fragment@2 {
-		target = <&gpio>;
-		__overlay__ {
+    fragment@2 {
+        target = <&gpio>;
+        __overlay__ {
             pinctrl-names = "default";
             pinctrl-0 = <&my_pins>;
 
@@ -37,18 +37,18 @@
                 brcm,pull = <1>;     /* PULLDOWN */
             };
         };
-	};
+    };
 
-	__overrides__ {
+    __overrides__ {
         fanspeed0  = <&argonone>,"argonone-cfg.0";
         fanspeed1  = <&argonone>,"argonone-cfg.1";
         fanspeed2  = <&argonone>,"argonone-cfg.2";
         fantemp0   = <&argonone>,"argonone-cfg.3";
         fantemp1   = <&argonone>,"argonone-cfg.4";
         fantemp2   = <&argonone>,"argonone-cfg.5";
-		hysteresis = <&argonone>,"argonone-cfg.6";
-		argonconf  = <&argonone>,"argonone-conf";
-		argon-i2c  = <&argonone>,"argonone-extra.0";
-		argon-flag = <&argonone>,"argonone-extra.1";
-	};
+        hysteresis = <&argonone>,"argonone-cfg.6";
+        argonconf  = <&argonone>,"argonone-conf";
+        argon-i2c  = <&argonone>,"argonone-extra.0";
+        argon-flag = <&argonone>,"argonone-extra.1";
+    };
 };
