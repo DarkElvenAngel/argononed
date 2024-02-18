@@ -105,7 +105,63 @@ void Alarm_handler(int sig __attribute__((unused)))
 {
     log_message(LOG_DEBUG + LOG_BOLD,"Received Signal ALARM");
 }
+// Write to an I2C slave device's register:
+int i2c_write(int fd, uint8_t slave_addr, uint8_t reg, uint8_t data) {
+    int retval;
+    uint8_t outbuf[2];
 
+    struct i2c_msg msgs[1];
+    struct i2c_rdwr_ioctl_data msgset[1];
+
+    outbuf[0] = reg;
+    outbuf[1] = data;
+
+    msgs[0].addr = slave_addr;
+    msgs[0].flags = 0;
+    msgs[0].len = 2;
+    msgs[0].buf = outbuf;
+
+    msgset[0].msgs = msgs;
+    msgset[0].nmsgs = 1;
+
+    if (ioctl(fd, I2C_RDWR, &msgset) < 0) {
+        return 0;
+    }
+
+    return 1;
+}
+// Read the given I2C slave device's register and return the read value in `*result`:
+int i2c_read(int fd, uint8_t slave_addr, uint8_t reg, uint8_t *result) {
+    int retval;
+    uint8_t outbuf[1], inbuf[1];
+    struct i2c_msg msgs[2];
+    struct i2c_rdwr_ioctl_data msgset[1];
+
+    msgs[0].addr = slave_addr;
+    msgs[0].flags = 0;
+    msgs[0].len = 1;
+    msgs[0].buf = outbuf;
+
+    msgs[1].addr = slave_addr;
+    msgs[1].flags = I2C_M_RD | I2C_M_NOSTART;
+    msgs[1].len = 1;
+    msgs[1].buf = inbuf;
+
+    msgset[0].msgs = msgs;
+    msgset[0].nmsgs = 2;
+
+    outbuf[0] = reg;
+
+    inbuf[0] = 0;
+
+    *result = 0;
+    if (ioctl(fd, I2C_RDWR, &msgset) < 0) {
+        return -1;
+    }
+
+    *result = inbuf[0];
+    return 0;
+}
 /**
  * \brief Send fan speed request to the argon micro controller
  * 
@@ -123,6 +179,7 @@ void Set_FanSpeed(uint8_t fan_speed)
 {
     static int file_i2c = 0;        // i2c file descripter
     static uint8_t speed = 1;       // Current fan speed 
+    static bool ctrl_reg = false;   // This is a V3+ case? 
     unsigned long functions = 0;
 	if (file_i2c == 0)
     {
@@ -165,16 +222,18 @@ void Set_FanSpeed(uint8_t fan_speed)
             else
                 log_message(LOG_DEBUG, "Argon fan controller found");
         }
+        // Scan for V3 controller
+        {
+            
+        }
         log_message(LOG_INFO,"I2C Initialized");
     }
     if (fan_speed <= 100 && fan_speed != speed)
     {
         // Pi 5 Version only
-        uint8_t data[2] = {0x80, fan_speed};
-        log_message(LOG_DEBUG,"Attempt write to the i2c bus. {%02X, %02X}\n", data[0], data[1]);
-        if (write(file_i2c, data, 2) != 2)
+        if (i2c_write(file_i2c, 0x1a, 80, fan_speed) != 1)
         {
-            log_message(LOG_CRITICAL,"Failed to write to the i2c bus.\n");
+            log_message(LOG_CRITICAL,"Failed to write to the i2c bus.");
         }
         log_message(LOG_INFO, "Set fan to %d%%",fan_speed);
         speed = fan_speed;

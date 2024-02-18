@@ -26,6 +26,7 @@ SOFTWARE.
 #define ARGONONED_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define DAEMON_VERSION "0.5.0"
 
