@@ -16,6 +16,11 @@ check_distro() {
             VARIANT_ID="`(awk -F"=" '$1=="VARIANT_ID"{print $2}' /etc/os-release | sed 's/\"//g')`"
             [ "x$VARIANT_ID" = "x" ] && distro="fedora" || distro="${lower_case_string}-${VARIANT_ID}"
             ;;
+        *rpios*)
+            VERSION_ID="`(awk -F"=" '$1=="VERSION_ID"{print $2}' /etc/os-release | sed 's/\"//g')`"
+            [ "xVERSION_ID" = "x" ] && continue
+            [ VERSION_ID -lt 12 ] && distro="rpios-legacy" 
+            ;;
         *gentoo*) distro='gentoo';;
         *kali*) distro='kali';;
         *lakka*) distro='lakka';;
