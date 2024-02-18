@@ -136,7 +136,7 @@ while true; do
         "2" ) 
             if [[ $CHOICE == *"$choice"* ]]
             then
-                git checkout 0.3.x &> /dev/null
+                git checkout 0.4.x &> /dev/null
                 break
             else
                 echo "Invalid choice" 
