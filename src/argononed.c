@@ -169,7 +169,10 @@ void Set_FanSpeed(uint8_t fan_speed)
     }
     if (fan_speed <= 100 && fan_speed != speed)
     {
-        if (write(file_i2c, &fan_speed, 1) != 1)
+        // Pi 5 Version only
+        uint8_t data[2] = {0x80, fan_speed};
+        log_message(LOG_DEBUG,"Attempt write to the i2c bus. {%02X, %02X}\n", data[0], data[1]);
+        if (write(file_i2c, data, 2) != 2)
         {
             log_message(LOG_CRITICAL,"Failed to write to the i2c bus.\n");
         }
