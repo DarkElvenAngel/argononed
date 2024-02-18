@@ -36,7 +36,7 @@ Simply put I didn't like the OEM software.  It works sure but it uses Python and
 
 The installer now requires you to run ```./configure``` before you run make. This will set up the installer so that it should be able to install on multiple OS's.  The current list of supported OS's are  
 
-* Raspberry Pi OS 32bit or 64bit
+* Raspberry Pi OS 32bit or 64bit **BOOKWORM and newer only supported in 0.4.x and newer**
 * RetroPi
 * Gentoo
 * Manjaro-arm
@@ -56,7 +56,7 @@ The installer now requires you to run ```./configure``` before you run make. Thi
 * opensuse Thanks to @fridrich
 * opensuse-microos **EXPERIMENTAL**
 * piCore Thanks to @irkode **0.4.x ONLY see note** *\***
-* [NixOS](OS/nixos/README.md) **SPECIAL** _(Please see link for this OS)_ Thanks to @ykis-0-0 for all the hard work required for this one
+* [NixOS](OS/nixos/README.md) **SPECIAL** *(Please see link for this OS)* Thanks to @ykis-0-0 for all the hard work required for this one
 
 If your OS isn't on this list it means that the installer isn't setup for your OS and it *may* or *may not* be able to install on your system.  Support for your OS may be avalible in [0.4.x branch](https://gitlab.com/DarkElvenAngel/argononed/-/tree/0.4.x)
 
