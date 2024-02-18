@@ -105,9 +105,17 @@ void Alarm_handler(int sig __attribute__((unused)))
 {
     log_message(LOG_DEBUG + LOG_BOLD,"Received Signal ALARM");
 }
-// Write to an I2C slave device's register:
+/**
+ * @brief Write to an I2C slave device's register:
+ * 
+ * @param[in] fd i2c file descriptor 
+ * @param[in] slave_addr address of device
+ * @param[in] reg register to read from
+ * @param[in] data byte to write
+ * @return int 
+ */
 int i2c_write(int fd, uint8_t slave_addr, uint8_t reg, uint8_t data) {
-    int retval;
+    //int retval;
     uint8_t outbuf[2];
 
     struct i2c_msg msgs[1];
@@ -124,15 +132,24 @@ int i2c_write(int fd, uint8_t slave_addr, uint8_t reg, uint8_t data) {
     msgset[0].msgs = msgs;
     msgset[0].nmsgs = 1;
 
+    log_message(LOG_DEBUG,"Write to i2c bus [ADD : %02X REG : %02X DATA : %02X]",slave_addr, reg, data);
     if (ioctl(fd, I2C_RDWR, &msgset) < 0) {
         return 0;
     }
 
     return 1;
 }
-// Read the given I2C slave device's register and return the read value in `*result`:
+/**
+ * @brief  Read the given I2C slave device's register
+ * 
+ * @param[in] fd i2c file descriptor 
+ * @param[in] slave_addr address of device
+ * @param[in] reg register to read from
+ * @param[out] result byte value read 
+ * @return int 
+ */
 int i2c_read(int fd, uint8_t slave_addr, uint8_t reg, uint8_t *result) {
-    int retval;
+    // int retval;
     uint8_t outbuf[1], inbuf[1];
     struct i2c_msg msgs[2];
     struct i2c_rdwr_ioctl_data msgset[1];
@@ -158,6 +175,7 @@ int i2c_read(int fd, uint8_t slave_addr, uint8_t reg, uint8_t *result) {
     if (ioctl(fd, I2C_RDWR, &msgset) < 0) {
         return -1;
     }
+    log_message(LOG_DEBUG,"Read from i2c bus [ADD : %02X REG : %02X DATA : %02X]",slave_addr, reg, inbuf[0]);
 
     *result = inbuf[0];
     return 0;
@@ -219,19 +237,32 @@ void Set_FanSpeed(uint8_t fan_speed)
                 file_i2c = 0; // Reset so the i2c can reconnect on a different bus if requested
                 return;
             }
-            else
+            else // Scan for V3 controller
+            {
                 log_message(LOG_DEBUG, "Argon fan controller found");
-        }
-        // Scan for V3 controller
-        {
-            
+                log_message(LOG_INFO + LOG_BOLD, "Scan controller type");
+                uint8_t test_data, return_data;
+                i2c_read(file_i2c, 0x1a, ARG_REG_DUTYCYCLE, &test_data);
+                return_data = test_data + 1;
+                i2c_write(file_i2c, 0x1a, ARG_REG_DUTYCYCLE, return_data);
+                i2c_read(file_i2c, 0x1a, ARG_REG_DUTYCYCLE, &return_data);
+                ctrl_reg = return_data != test_data ? true : false;
+                if (ctrl_reg) { log_message(LOG_INFO, "Detected RP2040 controller"); }
+                else { log_message(LOG_INFO, "Detected controller version 1"); }
+            }
         }
         log_message(LOG_INFO,"I2C Initialized");
     }
     if (fan_speed <= 100 && fan_speed != speed)
     {
-        // Pi 5 Version only
-        if (i2c_write(file_i2c, 0x1a, 80, fan_speed) != 1)
+        int write_success = 0;
+        if (ctrl_reg) 
+        {
+            write_success = i2c_write(file_i2c, 0x1a, ARG_REG_DUTYCYCLE, fan_speed);
+        } else {
+            write_success = write(file_i2c, &fan_speed, 1);
+        }
+        if (write_success != 1)
         {
             log_message(LOG_CRITICAL,"Failed to write to the i2c bus.");
         }

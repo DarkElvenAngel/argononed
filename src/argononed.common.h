@@ -49,6 +49,15 @@ SOFTWARE.
 #endif
 #define SHM_SIZE 512
 
+/**
+ * @brief Defines for the ArgonOne V3 controller registers
+ * 
+ */
+#define ARG_REG_DUTYCYCLE 0x80
+#define ARG_REG_FW 0x81
+#define ARG_REG_IR 0x82
+#define ARG_REG_CTRL 0x86
+
 typedef enum {
     LOG_NONE = 0,
     LOG_FATAL,
