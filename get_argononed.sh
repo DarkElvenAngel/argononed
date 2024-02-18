@@ -66,7 +66,7 @@ else
 fi
 UPDATE=0
 MASTERBRANCH_VERSION=$(curl -s https://gitlab.com/DarkElvenAngel/argononed/-/raw/master/version)
-LATESTBRANCH_VERSION=$(curl -s https://gitlab.com/DarkElvenAngel/argononed/-/raw/0.3.x/version)
+LATESTBRANCH_VERSION=$(curl -s https://gitlab.com/DarkElvenAngel/argononed/-/raw/0.5.x/version)
 if [ "$CURRENT_VERSION" == "0.0.0" ]
 then
     echo "Installed version     [ NONE ]" 
@@ -136,7 +136,7 @@ while true; do
         "2" ) 
             if [[ $CHOICE == *"$choice"* ]]
             then
-                git checkout 0.3.x &> /dev/null
+                git checkout 0.5.x &> /dev/null
                 break
             else
                 echo "Invalid choice" 
