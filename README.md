@@ -10,6 +10,10 @@ Not all features are working, present, and/or stable. Functions and instruction 
 
 * More control: multiple ways to configure.
 * Full rewrite of the base code.
+
+## These features are moved to 0.5.x
+
+* Support for Argon V3 and Pi 5
 * Support for Argon IR REMOTE.
 * More robust IPC support.
 * New cli tool `argonctl`
@@ -277,21 +281,4 @@ Error Flag(s) set
     i2c bus
 ```
 
-With the flags you can see the error is with the i2c bus.  Once `argonctl` is complete you will be able to diagnose and possible fix problems like this without restarting.
-
-## The new `argonctl`
-
-The `argonctl` tool was meant to replace the `argonone-cli`, `argonctl` will do everything `argonone-cli` can do and more.  Since this tool is in the planning stage this can all change.
-
-The argonone daemon is moving away from the shared memory method of interacting and controlling things.  The daemon will instead use sockets this will allow for two way communications and some of these new features.
-
-The proposed features are
-
-* Changing the schedule or mode *much like the current tool.*
-* Loading or saving the configurations
-* Monitor mode get real time data from the daemon
-* Logging client no matter the loglevel of the daemon you can use the logging client to read log events.
-* send commands example restart i2c
-* read status the is much like `argonone-cli --decode`
-* IR controls the argon one V2 has a built-in IR sensor that can be programed
-* Fan control **without** the daemon!!  send fan command directly to the controller with or without the daemon.
+With the flags you can see the error is with the i2c bus.
