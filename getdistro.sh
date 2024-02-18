@@ -19,7 +19,7 @@ check_distro() {
         *rpios*)
             VERSION_ID="`(awk -F"=" '$1=="VERSION_ID"{print $2}' /etc/os-release | sed 's/\"//g')`"
             [ "xVERSION_ID" = "x" ] && continue
-            [ VERSION_ID -lt 12 ] && distro="rpios-legacy" 
+            [ $VERSION_ID -lt 12 ] && distro="rpios-legacy" 
             ;;
         *gentoo*) distro='gentoo';;
         *kali*) distro='kali';;
@@ -46,7 +46,7 @@ distro="UNKNOWN"
 # special checks
 while distro="UNKNOWN"
 do
-  [ -f '/etc/rpi-issue' ] && { distro='rpios'; break; }
+  [ -f '/etc/rpi-issue' ] && { distro='rpios'; check_distro "rpios"; break; }
   [ -f /usr/share/doc/tc/release.txt ] && { distro=piCore; break; }
   break
 done
