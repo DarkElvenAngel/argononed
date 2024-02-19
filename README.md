@@ -22,7 +22,7 @@ Simply put I didn't like the OEM software.  It works sure but it uses Python and
 
 The current list of supported OS's are  
 
-* Raspberry Pi OS 32bit or 64bit **BOOKWORM and newer only supported in 0.4.x and newer**
+* Raspberry Pi OS 32bit or 64bit
 * RetroPi
 * Gentoo
 * Manjaro-arm
@@ -47,7 +47,7 @@ The current list of supported OS's are
 * [Fedora-Server](OS/fedora-server/README.md) Thanks to @mjackdk and @ItzMiracleOwO **See Link for troubleshooting**
 * [NixOS](OS/nixos/README.md) **SPECIAL** *(Please see link for this OS)* Thanks to @ykis-0-0 for all the hard work required for this one
 
-If your OS isn't on this list it means that the installer isn't setup for your OS and it *may* or *may not* be able to install on your system. If your OS is based off one of these the is a strong chance it will *just* work.
+If your OS isn't on this list it means that the installer isn't setup for your OS and it *may* or *may not* be able to install on your system. If your OS is based off one of these there is a strong chance it will *just* work.
 
 *\** *Support for this OS is with the self extracting package system. SEE BELOW*
 
@@ -206,7 +206,7 @@ This is the default mode the daemon always starts in this mode and will follow t
 Yes an off switch, maybe you want to do something and you need to be sure the fan doesn't turn on and spoil it.  You can turn off the fan as follows ```argonone-cli --off```
 ***NOTE***: *When the fan is off nothing but turning to a different mode will turn it back on*
 
-## `argonone-cli` tool [ **WARNING** DEPRECATED ]
+## `argonone-cli` tool
 
 The `argonone-cli` command line tool lets you change setting on the fly. It communicates with shared memory of the daemon, so the daemon must be running for this tool to be of use.
 
