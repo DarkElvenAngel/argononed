@@ -511,6 +511,8 @@ int32_t monitor_device(uint32_t *Pulse_Time_ms)
         }
     }
     *Pulse_Time_ms = 0; // Initialize to zero
+    // On the Pi 5 we need a different device 
+#if 0
 	fd = open("/dev/gpiochip0", 0);
 	if (fd == -1) {
         log_message(LOG_CRITICAL, "Unable to open /dev/gpiochip0 : %s", strerror(errno));
@@ -520,6 +522,33 @@ int32_t monitor_device(uint32_t *Pulse_Time_ms)
             E_Flag = -1;
             log_message(LOG_FATAL, "Powerbutton monitoring has failed!");
         }
+		goto exit_close_error;
+	}
+#endif
+    char gpiochip_path[32];
+    for (uint8_t i = 0; i < 10; i++)
+    {
+        snprintf(gpiochip_path,31,"/dev/gpiochip%d", i);
+        struct gpiochip_info info;
+        fd = open(gpiochip_path, O_RDONLY);
+        if (fd < 0 ) { continue; }
+        if (ioctl(fd, GPIO_GET_CHIPINFO_IOCTL, &info) == -1) 
+        { 
+            close(fd); 
+            continue; 
+        }
+        if (strstr(info.label,"pinctrl"))
+        {
+            log_message(LOG_DEBUG, "pinctrl found on device %s [%s]",info.name, info.label);
+            break;
+        }
+        close(fd);
+        fd = -1;
+    }
+    if (fd == -1) {
+        log_message(LOG_CRITICAL, "Unable to local pinctlr");
+        E_Flag = -1;
+        log_message(LOG_FATAL, "Powerbutton monitoring has failed!");
 		goto exit_close_error;
 	}
 	req.lineoffset = 4;
@@ -541,7 +570,7 @@ int32_t monitor_device(uint32_t *Pulse_Time_ms)
         log_message(LOG_INFO, "GPIO Line Event Cleared ");
         E_Flag = 0;
     }
-	log_message(LOG_INFO, "Monitoring line 4 on /dev/gpiochip0");
+	log_message(LOG_INFO, "Monitoring line 4 on %s", gpiochip_path);
     uint32_t Rtime = 0;
 	while (1) {
 		struct gpioevent_data event;
