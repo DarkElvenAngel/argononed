@@ -546,7 +546,7 @@ int32_t monitor_device(uint32_t *Pulse_Time_ms)
         fd = -1;
     }
     if (fd == -1) {
-        log_message(LOG_CRITICAL, "Unable to local pinctlr");
+        log_message(LOG_CRITICAL, "Unable to locate pinctlr");
         E_Flag = -1;
         log_message(LOG_FATAL, "Powerbutton monitoring has failed!");
 		goto exit_close_error;
