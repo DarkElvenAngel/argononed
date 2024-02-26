@@ -176,6 +176,7 @@ int load_schedule(Schedule config)
     //log_message(LOG_INFO,"Hysteresis set to %d",hysteresis);
     //log_message(LOG_INFO,"Fan Speeds set to %d%% %d%% %d%%",fanstage[0],fanstage[1],fanstage[2]);
     //log_message(LOG_INFO,"Fan Temps set to %d %d %d",threshold[0],threshold[1],threshold[2]);
+    reset_shm();
     return 0;
 }
 /**
@@ -204,6 +205,7 @@ int Change_mode(uint8_t fanmode, uint8_t temperature_target, uint8_t fanspeed_Ov
     log_message(LOG_INFO,"Fan Mode [ %s ] ", RUN_STATE_STR[Configuration.runstate]);
     log_message(LOG_INFO,"Fan Speed Override %3d ", Configuration.fanspeed_Overide);
     log_message(LOG_INFO,"Target Temperature %d ", Configuration.temperature_target);
+    reset_shm();
     return 0;
 }
 
@@ -263,6 +265,21 @@ void TMR_SHM_Interface(size_t timer_id __attribute__((unused)), void *message_in
                 if (*req_flags & REQ_FLAG_CONF)
                 {
                     if (load_schedule(message->Schedules) == 0)
+                    {
+                        memset(message, 0, sizeof(struct SHM_REQ_MSG));
+                        *status = REQ_WAIT;
+                        return;
+                    }
+                }
+                if (*req_flags & REQ_FLAG_MODE)
+                {
+                    log_message(LOG_DEBUG,"IPC [%d] CHANGE MODE %s FAN %d TEMP %d",
+                        index,
+                        RUN_STATE_STR[message->fanmode],
+                        message->fanspeed_Overide,
+                        message->temperature_target
+                    );
+                    if (Change_mode(message->fanmode,message->temperature_target,message->fanspeed_Overide) == 0)
                     {
                         memset(message, 0, sizeof(struct SHM_REQ_MSG));
                         *status = REQ_WAIT;
