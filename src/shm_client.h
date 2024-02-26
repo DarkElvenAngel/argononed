@@ -66,6 +66,7 @@ int Get_Config(ArgonMem* ar_ptr, struct DTBO_Config*);
 int Get_Statistics(ArgonMem* ar_ptr, struct SHM_DAEMON_STATS*);
 int Get_Current_Temperature(ArgonMem* ar_ptr, uint8_t *temperature);
 int Get_Current_FanSpeed(ArgonMem* ar_ptr, uint8_t *speed);
+int Get_Current_FanMode(ArgonMem* ar_ptr, ArgonModes *mode);
 
 int Set_FanMode(ArgonMem* ar_ptr, ArgonModes mode_select);
 int Set_FanSpeed(ArgonMem* ar_ptr, uint8_t speed);

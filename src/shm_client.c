@@ -39,24 +39,24 @@ int Send_Request(ArgonMem* ar_ptr)
       return kill(ar_ptr->daemon_pid, 1);
     }
     uint8_t last_state = 0;
-     if (ar_ptr->memory->status != REQ_WAIT) 
+     if (ar_ptr->memory->msg_app[0].status != REQ_WAIT) 
     {
         return 1;
     }
-    ar_ptr->memory->status = REQ_RDY;
-    for(;ar_ptr->memory->status != REQ_WAIT;) 
+    ar_ptr->memory->msg_app[0].status = REQ_RDY;
+    for(;ar_ptr->memory->msg_app[0].status != REQ_WAIT;) 
     {
-        if (last_state != ar_ptr->memory->status)
+        if (last_state != ar_ptr->memory->msg_app[0].status)
         {
-            last_state = ar_ptr->memory->status;
-            if (ar_ptr->memory->status == REQ_ERR)
+            last_state = ar_ptr->memory->msg_app[0].status;
+            if (ar_ptr->memory->msg_app[0].status == REQ_ERR)
             {
                 return -1;
             }
         }
         msync(ar_ptr->memory,13,MS_SYNC);
     }  
-    ar_ptr->memory->status = REQ_CLR;
+    ar_ptr->memory->msg_app[0].status = REQ_CLR;
    return 0;
 }
 
@@ -107,18 +107,18 @@ int Send_Reset_Statitsics(ArgonMem* ar_ptr)
       return kill(ar_ptr->daemon_pid, 1);
     }
     uint8_t last_state = 0;
-    if (ar_ptr->memory->status != REQ_WAIT) 
+    if (ar_ptr->memory->msg_app[0].status != REQ_WAIT) 
     {
         return EBUSY;
     }
-    ar_ptr->memory->req_flags |= REQ_FLAG_STAT;
-    ar_ptr->memory->status = REQ_CLR;
-    for(;ar_ptr->memory->status != REQ_WAIT;) 
+    ar_ptr->memory->msg_app[0].req_flags |= REQ_FLAG_STAT;
+    ar_ptr->memory->msg_app[0].status = REQ_CLR;
+    for(;ar_ptr->memory->msg_app[0].status != REQ_WAIT;) 
     {
-        if (last_state != ar_ptr->memory->status)
+        if (last_state != ar_ptr->memory->msg_app[0].status)
         {
-           last_state = ar_ptr->memory->status;
-            if (ar_ptr->memory->status == REQ_ERR)
+           last_state = ar_ptr->memory->msg_app[0].status;
+            if (ar_ptr->memory->msg_app[0].status == REQ_ERR)
             {
                 return EAGAIN;
             }
@@ -200,7 +200,26 @@ int Get_Current_Temperature(ArgonMem* ar_ptr, uint8_t *temperature)
     *temperature = ar_ptr->memory->temperature;
     return 0;
 }
-
+/**
+ * Get Current Fan mode from daemon
+ * 
+ * \param ar_ptr Pointer to ArgonMem Struct
+ * \param mode pointer to save fan mode to
+ * \return 0 on success
+ */
+int Get_Current_FanMode(ArgonMem* ar_ptr, ArgonModes *mode)
+{
+    if (ar_ptr == NULL)
+    {
+        return ENOTCONN;
+    }
+    if (mode == NULL)
+    {
+        return ECANCELED;
+    }
+    *mode = ar_ptr->memory->fanmode;
+    return 0;
+}
 /**
  * Get fan Speed from Daemon
  * 
@@ -370,9 +389,11 @@ int Set_Schedule(ArgonMem* ar_ptr, struct DTBO_Config Schedule)
 int Set_CoolDown(ArgonMem* ar_ptr, uint8_t temperature, uint8_t speed)
 {
     if (ar_ptr == NULL) return ENOMEM;
-    ar_ptr->memory->msg_app[0].temperature_target = (uint8_t)temperature;
-    ar_ptr->memory->msg_app[0].fanspeed_Overide = (uint8_t)speed;
+    ar_ptr->memory->msg_app[0].fanmode = AR_MODE_COOL;
+    ar_ptr->memory->msg_app[0].temperature_target = temperature;
+    ar_ptr->memory->msg_app[0].fanspeed_Overide = speed;
     ar_ptr->memory->msg_app[0].req_flags |= REQ_FLAG_MODE;
+    printf("\nSHM_CLIENT COOLDOWN T:%d S:%d\n", temperature, speed);
     return 0;
 }
 
@@ -386,8 +407,9 @@ int Set_CoolDown(ArgonMem* ar_ptr, uint8_t temperature, uint8_t speed)
 int Set_ManualFan(ArgonMem* ar_ptr, uint8_t speed)
 {
     if (ar_ptr == NULL) return ENOMEM;
-    Set_FanMode(ar_ptr, AR_MODE_MAN);
+    ar_ptr->memory->msg_app[0].fanmode = AR_MODE_MAN;
     ar_ptr->memory->msg_app[0].fanspeed_Overide = (uint8_t)speed;
     ar_ptr->memory->msg_app[0].req_flags |= REQ_FLAG_MODE;
+    printf("\nSHM_CLIENT MANUAL S:%d\n", speed);
     return 0;
 }
