@@ -14,6 +14,14 @@ Not all features are working, present, and/or stable. Functions and instruction 
 
 Simply put I didn't like the OEM software.  It works sure but it uses Python and needs to install a bunch of dependencies.  This makes it's foot print on your system much bigger than it needs to be.  My daemon runs with minimal requirements, and requires no extra libraries.
 
+## Pi 5 additional steps
+
+**Note** that there are some extra steps required to get a Pi5 and an Argon ONE V3 to boot correctly
+
+You need to change the EEPROM settings. The setting `PSU_MAX_CURRENT=5000` is required.
+
+Also ensure you have `usb_max_current_enable=1` in your `config.txt`
+
 ## OS Support
 
 The current list of supported OS's are  
