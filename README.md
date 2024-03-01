@@ -2,6 +2,10 @@
 
 A replacement daemon for the Argon One Raspberry Pi cases, and the Argon Artik Fan Hat.
 
+This is a Mirror of https://gitlab.com/DarkElvenAngel/argononed
+
+Please note that this is not up to date and no issues are accepted on this mirror please direct all issues to the main project.
+
 ## What's new in 0.4.x
 
 * More control: multiple ways to configure.
